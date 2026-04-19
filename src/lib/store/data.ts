@@ -89,7 +89,7 @@ export async function getTopCategoriesOrMock() {
   try {
     await connectDB();
     const cats = await Category.find({ isActive: true }).sort({ order: 1 }).limit(20).select("name slug image").lean();
-    if (!cats.length) return { source: "mock" as const, categories: mockCategories };
+    if (!cats.length) return { source: "mock" as const, categories: mockCategories.map(c => ({ ...c, image: c.image ?? "" })) };
     return {
       source: "db" as const,
       categories: cats.map((c) => ({
@@ -100,7 +100,7 @@ export async function getTopCategoriesOrMock() {
       })),
     };
   } catch {
-    return { source: "mock" as const, categories: mockCategories };
+    return { source: "mock" as const, categories: mockCategories.map(c => ({ ...c, image: c.image ?? "" })) };
   }
 }
 
