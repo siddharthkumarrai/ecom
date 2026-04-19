@@ -115,9 +115,9 @@ export function Footer({
             {(normalizedSocialLinks.length
               ? normalizedSocialLinks
               : [
-                  { platform: "facebook", url: "#" },
-                  { platform: "instagram", url: "#" },
-                  { platform: "linkedin", url: "#" },
+                  { platform: "facebook", url: "#", logoUrl: "" },
+                  { platform: "instagram", url: "#", logoUrl: "" },
+                  { platform: "linkedin", url: "#", logoUrl: "" },
                 ]).map((item) => (
               <a
                 key={`${item.platform}-${item.url}`}
