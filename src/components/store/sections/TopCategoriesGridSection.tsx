@@ -18,6 +18,7 @@ export async function TopCategoriesGridSection({ section, siteConfig }: SectionR
   const fallback = !fromSlugs.length ? (await getTopCategoriesOrMock()).categories.slice(0, 10) : [];
   const categories = (fromSlugs.length ? fromSlugs : fallback)
     .filter((c): c is NonNullable<typeof c> => c != null)
+    .map(c => ({ ...c, image: (c as any).image ?? "" }))
     .slice(0, 10);
   const categoryImages =
     section.config.categoryImages && typeof section.config.categoryImages === "object" && !Array.isArray(section.config.categoryImages)
