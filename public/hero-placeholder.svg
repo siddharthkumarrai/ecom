@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" fill="none">
+  <rect width="960" height="540" rx="24" fill="#F3F4F6"/>
+  <rect x="530" y="94" width="170" height="340" rx="24" transform="rotate(-14 530 94)" fill="#374151"/>
+  <rect x="625" y="74" width="170" height="340" rx="24" transform="rotate(10 625 74)" fill="#9CA3AF"/>
+  <rect x="710" y="122" width="170" height="340" rx="24" transform="rotate(-6 710 122)" fill="#111827"/>
+  <rect x="733" y="148" width="126" height="250" rx="14" fill="#E5E7EB"/>
+  <circle cx="796" cy="140" r="7" fill="#D1D5DB"/>
+  <text x="90" y="250" fill="#6B7280" font-family="Arial, sans-serif" font-size="42" font-weight="700">Campaign Image</text>
+  <text x="90" y="300" fill="#9CA3AF" font-family="Arial, sans-serif" font-size="24">Set slide.imageUrl from CMS to replace this placeholder</text>
+</svg>
