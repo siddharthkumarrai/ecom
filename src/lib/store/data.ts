@@ -225,7 +225,7 @@ export async function getCategoriesBySlugsOrMock(slugs: string[]) {
         id: category.id,
         name: category.name,
         slug: category.slug,
-        image: typeof category.image === "string" ? category.image : "",
+        image: category.image ?? "",
       })),
   };
 }
