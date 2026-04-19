@@ -1,0 +1,223 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from "react";
+import Image from "next/image";
+
+interface HeroBannerProps {
+  eyebrow: string;
+  title: string;
+  description: string;
+  primaryCtaLabel: string;
+  primaryCtaHref: string;
+  secondaryCtaLabel: string;
+  secondaryCtaHref: string;
+  slides?: Array<{
+    title: string;
+    subtitle: string;
+    ctaLabel: string;
+    ctaHref: string;
+    imageUrl?: string;
+  }>;
+  sideCards?: Array<{
+    title: string;
+    subtitle: string;
+    ctaLabel: string;
+    ctaHref: string;
+    imageUrl?: string;
+  }>;
+  autoplayMs?: number;
+}
+
+export function HeroBanner({
+  eyebrow,
+  title,
+  description,
+  primaryCtaLabel,
+  primaryCtaHref,
+  secondaryCtaLabel,
+  secondaryCtaHref,
+  slides,
+  sideCards,
+  autoplayMs = 4200,
+}: HeroBannerProps) {
+  const cards = sideCards ?? [];
+
+  const computedSlides = useMemo(
+    () =>
+      slides?.length
+        ? slides
+        : [
+            { title, subtitle: description, ctaLabel: primaryCtaLabel, ctaHref: primaryCtaHref, imageUrl: "" },
+            { title: `${title} - Fast Fulfillment`, subtitle: description, ctaLabel: secondaryCtaLabel, ctaHref: secondaryCtaHref, imageUrl: "" },
+            { title: `${title} - Trusted Components`, subtitle: description, ctaLabel: primaryCtaLabel, ctaHref: primaryCtaHref, imageUrl: "" },
+          ],
+    [slides, title, description, primaryCtaLabel, primaryCtaHref, secondaryCtaLabel, secondaryCtaHref]
+  );
+
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [dragStartX, setDragStartX] = useState<number | null>(null);
+  const [dragDeltaX, setDragDeltaX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (computedSlides.length <= 1) return;
+    const timer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % computedSlides.length);
+    }, autoplayMs);
+    return () => window.clearInterval(timer);
+  }, [computedSlides.length, autoplayMs]);
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    setDragStartX(event.clientX);
+    setDragDeltaX(0);
+  };
+
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!isDragging || dragStartX === null) return;
+    setDragDeltaX(event.clientX - dragStartX);
+  };
+
+  const onPointerEnd = () => {
+    if (!isDragging) return;
+    const threshold = 60;
+    if (dragDeltaX > threshold) {
+      setActiveSlide((current) => (current - 1 + computedSlides.length) % computedSlides.length);
+    } else if (dragDeltaX < -threshold) {
+      setActiveSlide((current) => (current + 1) % computedSlides.length);
+    }
+    setIsDragging(false);
+    setDragStartX(null);
+    setDragDeltaX(0);
+  };
+
+  return (
+    <section className="mt-0">
+      <div className={`grid gap-1 md:gap-2 ${cards.length ? "lg:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
+        <div
+          className="relative overflow-hidden rounded-md border border-zinc-200 bg-[#f2f2f2]"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerEnd}
+          onPointerCancel={onPointerEnd}
+          onPointerLeave={onPointerEnd}
+        >
+          <button
+            aria-label="Previous slide"
+            onClick={() => setActiveSlide((current) => (current - 1 + computedSlides.length) % computedSlides.length)}
+            className="absolute left-2 top-1/2 z-20 hidden -translate-y-1/2 rounded-full border border-zinc-300 bg-white/95 px-2 py-1 text-zinc-600 shadow-sm hover:bg-white md:inline-flex md:left-3 md:px-2.5 md:py-1.5"
+          >
+            ‹
+          </button>
+          <button
+            aria-label="Next slide"
+            onClick={() => setActiveSlide((current) => (current + 1) % computedSlides.length)}
+            className="absolute right-2 top-1/2 z-20 hidden -translate-y-1/2 rounded-full border border-zinc-300 bg-white/95 px-2 py-1 text-zinc-600 shadow-sm hover:bg-white md:inline-flex md:right-3 md:px-2.5 md:py-1.5"
+          >
+            ›
+          </button>
+
+          <div
+            className="flex transition-transform duration-700 ease-out"
+            style={{
+              width: `${computedSlides.length * 100}%`,
+              transform: `translateX(calc(-${activeSlide * (100 / computedSlides.length)}% + ${dragDeltaX}px))`,
+              transitionDuration: isDragging ? "0ms" : "700ms",
+            }}
+          >
+            {computedSlides.map((slide, index) => (
+              <div
+                key={`${slide.title}-${index}`}
+                className="relative w-full shrink-0 bg-[linear-gradient(120deg,#f8f8f8_0%,#f3f3f3_45%,#f0f0f0_100%)] min-h-[328px] md:min-h-[390px]"
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.7),rgba(255,255,255,0)_55%)]" />
+                <div className="relative grid min-h-[328px] grid-cols-2 md:min-h-[390px] md:grid-cols-[1fr_1.3fr]">
+                  <div className="flex flex-col justify-center px-3.5 py-3 md:px-8 md:py-8">
+                    {eyebrow ? (
+                      <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-zinc-500/80 md:text-[10px]">
+                        {eyebrow}
+                      </p>
+                    ) : null}
+                    <h1 className="mt-1 max-w-[180px] whitespace-pre-line text-[clamp(16px,4.8vw,24px)] font-light uppercase leading-[0.98] tracking-[-0.01em] text-zinc-900 md:max-w-[430px] md:text-[clamp(30px,4.2vw,56px)]">
+                      {slide.title}
+                    </h1>
+                    {slide.subtitle ? (
+                      <p className="mt-1.5 max-w-[180px] text-[9px] font-semibold uppercase tracking-[0.01em] text-zinc-900 md:mt-2 md:max-w-[430px] md:text-[15px] md:leading-tight">
+                        "{slide.subtitle}"
+                      </p>
+                    ) : null}
+                    <div className="mt-2.5 md:mt-6">
+                      <Link
+                        href={slide.ctaHref}
+                        className="inline-flex items-center justify-center rounded-[10px] bg-[#f5c400] px-3.5 py-1.5 text-[13px] font-medium text-zinc-900 transition hover:bg-[#ffd84d] md:min-w-[230px] md:px-8 md:py-3 md:text-[16px]"
+                      >
+                        {slide.ctaLabel}
+                      </Link>
+                    </div>
+                  </div>
+                  <div className="relative min-h-[328px] md:min-h-[390px]">
+                    <Image
+                      src={slide.imageUrl || "/hero-placeholder.svg"}
+                      alt={slide.title}
+                      fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1024px) 100vw, 66vw"
+                      className={`object-contain object-center p-0 transition-all duration-700 md:p-5 ${activeSlide === index ? "scale-[1.08] md:scale-100 opacity-100" : "scale-95 opacity-70"}`}
+                      draggable={false}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-2 md:bottom-4 md:left-6 md:translate-x-0">
+            {computedSlides.map((slide, index) => (
+              <button
+                key={`${slide.title}-${index}`}
+                aria-label={`Go to slide ${index + 1}`}
+                onClick={() => setActiveSlide(index)}
+                className={`h-2 rounded-full transition-all ${activeSlide === index ? "w-8 bg-brand-yellow" : "w-2 bg-zinc-300"}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {cards.length ? (
+            <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-1 md:gap-2 md:overflow-visible md:pb-0">
+            {cards.slice(0, 3).map((card, cardIdx) => (
+              <div
+                key={`${card.title}-${cardIdx}`}
+                className="min-w-[84%] shrink-0 snap-start md:min-w-0 md:shrink"
+              >
+                <Link
+                  href={card.ctaHref || "/"}
+                  className="group grid min-h-[126px] grid-cols-[112px_minmax(0,1fr)] overflow-hidden rounded border border-zinc-200 bg-[#efefef] md:min-h-[124px] md:grid-cols-[120px_minmax(0,1fr)]"
+                >
+                  <div className="relative bg-[#f5f5f5]">
+                    <Image
+                      src={card.imageUrl || "/hero-placeholder.svg"}
+                      alt={card.title || "Hero card"}
+                      fill
+                      sizes="120px"
+                      className="object-contain p-3 transition-transform duration-500 group-hover:scale-[1.04] md:p-2.5"
+                      draggable={false}
+                    />
+                  </div>
+                  <div className="flex flex-col justify-center p-2.5 md:p-2.5">
+                    {card.title ? <p className="line-clamp-3 whitespace-pre-line text-[11px] uppercase leading-[1.15] text-zinc-700 md:text-[13px] md:leading-[1.12]">{card.title}</p> : null}
+                    {card.subtitle ? <p className="mt-1 line-clamp-2 text-[10px] uppercase leading-4 text-zinc-600 md:text-[10px]">{card.subtitle}</p> : null}
+                    <span className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-zinc-900 md:text-[13px]">
+                      {card.ctaLabel || "Shop now"}
+                      <span className="inline-flex size-4 items-center justify-center rounded-full bg-brand-yellow text-[10px] leading-none text-zinc-900">›</span>
+                    </span>
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
