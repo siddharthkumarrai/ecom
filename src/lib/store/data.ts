@@ -210,7 +210,7 @@ export async function getCategoriesBySlugsOrMock(slugs: string[]) {
     ]));
     const ordered = cleanedSlugs
       .map((slug) => bySlug.get(slug))
-      .filter((category): category is { id: string; name: string; slug: string; image?: string } => !!category);
+      .filter((category): category is { id: string; name: string; slug: string; image: string } => !!category);
     if (ordered.length) return { source: "db" as const, categories: ordered };
   } catch {
     // Fall through to mock data.
