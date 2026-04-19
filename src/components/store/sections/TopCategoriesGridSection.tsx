@@ -17,12 +17,12 @@ export async function TopCategoriesGridSection({ section, siteConfig }: SectionR
   const fromSlugs = slugList.length ? (await getCategoriesBySlugsOrMock(slugList)).categories : [];
   const fallback = !fromSlugs.length ? (await getTopCategoriesOrMock()).categories.slice(0, 10) : [];
   const categories = (fromSlugs.length ? fromSlugs : fallback)
-    .filter(
-      (
-        category
-      ): category is Exclude<(typeof fromSlugs)[number], undefined | null> => Boolean(category)
-    )
-    .slice(0, 10);
+    .filter((category): category is NonNullable<typeof category> => Boolean(category))
+    .slice(0, 10)
+    .map((category) => ({
+      ...category,
+      image: "image" in category ? category.image : "",
+    }));
   const categoryImages =
     section.config.categoryImages && typeof section.config.categoryImages === "object" && !Array.isArray(section.config.categoryImages)
       ? Object.fromEntries(
@@ -47,7 +47,7 @@ export async function TopCategoriesGridSection({ section, siteConfig }: SectionR
               <Image
                 src={
                   categoryImages[category.slug] ||
-                  String(("image" in category ? category.image : "") || "").trim() ||
+                  String(category.image || "").trim() ||
                   "/hero-placeholder.svg"
                 }
                 alt={category.name}

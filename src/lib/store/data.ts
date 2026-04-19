@@ -190,6 +190,7 @@ export async function getProductsByIdsOrMock(ids: string[]) {
 }
 
 export async function getCategoriesBySlugsOrMock(slugs: string[]) {
+  type CategoryLookupItem = { id: string; name: string; slug: string; image: string };
   const cleanedSlugs = slugs.map((slug) => slug.trim()).filter(Boolean);
   if (!cleanedSlugs.length) return {
     source: "mock" as const,
@@ -199,18 +200,20 @@ export async function getCategoriesBySlugsOrMock(slugs: string[]) {
   try {
     await connectDB();
     const items = await Category.find({ slug: { $in: cleanedSlugs }, isActive: true }).select("name slug image").lean();
-    const bySlug = new Map(items.map((item) => [
-      item.slug,
-      {
-        id: String(item._id),
-        name: item.name,
-        slug: item.slug,
-        image: typeof item.image === "string" ? item.image : "",
-      },
-    ]));
+    const bySlug = new Map<string, CategoryLookupItem>(
+      items.map((item) => [
+        item.slug,
+        {
+          id: String(item._id),
+          name: item.name,
+          slug: item.slug,
+          image: typeof item.image === "string" ? item.image : "",
+        },
+      ])
+    );
     const ordered = cleanedSlugs
       .map((slug) => bySlug.get(slug))
-      .filter((category): category is NonNullable<typeof category> => !!category);
+      .filter((category): category is CategoryLookupItem => !!category);
     if (ordered.length) return { source: "db" as const, categories: ordered };
   } catch {
     // Fall through to mock data.
