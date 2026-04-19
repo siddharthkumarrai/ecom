@@ -220,7 +220,13 @@ export async function getCategoriesBySlugsOrMock(slugs: string[]) {
     source: "mock" as const,
     categories: cleanedSlugs
       .map((slug) => mockCategories.find((category) => category.slug === slug))
-      .filter((category): category is { id: string; name: string; slug: string } => !!category),
+      .filter((category): category is { id: string; name: string; slug: string; image?: string } => !!category)
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        image: typeof category.image === "string" ? category.image : "",
+      })),
   };
 }
 
