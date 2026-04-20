@@ -34,9 +34,9 @@ export function HomeTabbedProductShowcase({ tabs }: { tabs: ProductTab[] }) {
         ))}
       </div>
 
-      <div className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex items-stretch snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {activeTab.products.map((product) => (
-          <div key={product.id} className="min-w-[48%] shrink-0 snap-start md:min-w-[25%] lg:min-w-[14.2857%]">
+          <div key={product.id} className="min-w-[48%] shrink-0 snap-start self-stretch md:min-w-[25%] lg:min-w-[14.2857%]">
             <HomeProductTile product={product} />
           </div>
         ))}

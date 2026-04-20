@@ -7,8 +7,8 @@ import { WishlistHeartButton } from "@/components/store/wishlist/WishlistHeartBu
 
 export function HomeProductTile({ product }: { product: Product }) {
   return (
-    <article className="group relative overflow-hidden border-r border-zinc-200 bg-white transition-all duration-200 hover:z-10 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_8px_20px_rgba(15,23,42,0.12)] last:border-r-0">
-      <Link href={`/products/${product.slug}`} className="block p-2.5 transition-colors duration-200 group-hover:bg-zinc-50/40">
+    <article className="group relative flex h-full flex-col overflow-hidden border-r border-zinc-200 bg-white transition-all duration-200 hover:z-10 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_8px_20px_rgba(15,23,42,0.12)] last:border-r-0">
+      <Link href={`/products/${product.slug}`} className="flex min-h-0 flex-1 flex-col p-2.5 transition-colors duration-200 group-hover:bg-zinc-50/40">
         <p className="line-clamp-1 text-[10px] text-zinc-400">{product.brandName || "Everstar"}</p>
         <h3 className="mt-1 line-clamp-2 min-h-8 text-[12px] font-semibold leading-4 text-[#1e63b8] group-hover:underline">
           {product.name}
