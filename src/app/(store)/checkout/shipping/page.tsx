@@ -20,8 +20,14 @@ type CartSummary = {
   error?: string;
 };
 
+const COUPON_STORAGE_KEY = "lk_coupon_code";
+
 export default function ShippingPage() {
   const router = useRouter();
+  const [couponCode] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return (window.localStorage.getItem(COUPON_STORAGE_KEY) ?? "").trim().toUpperCase();
+  });
   const [cartData, setCartData] = useState<CartSummary | null>(null);
   const [cartLoading, setCartLoading] = useState(true);
   const [cartError, setCartError] = useState("");
@@ -105,7 +111,8 @@ export default function ShippingPage() {
       setCartLoading(true);
       setCartError("");
       try {
-        const res = await fetch("/api/v1/cart", { credentials: "include" });
+        const couponQuery = couponCode ? `?couponCode=${encodeURIComponent(couponCode)}` : "";
+        const res = await fetch(`/api/v1/cart${couponQuery}`, { credentials: "include" });
         const json = (await res.json().catch(() => ({}))) as CartSummary;
         if (!res.ok) {
           setCartError(json.error || "Failed to load checkout items.");
@@ -120,7 +127,7 @@ export default function ShippingPage() {
       }
     };
     void loadCart();
-  }, []);
+  }, [couponCode]);
 
   const removeItem = async (productId: string) => {
     setRemovingProductId(productId);
@@ -129,7 +136,7 @@ export default function ShippingPage() {
       const res = await fetch("/api/v1/cart", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId }),
+        body: JSON.stringify({ productId, couponCode: couponCode || undefined }),
       });
       const json = (await res.json().catch(() => ({}))) as CartSummary;
       if (!res.ok) {
@@ -220,6 +227,13 @@ export default function ShippingPage() {
                 Tax ({cartData?.totals?.taxPercent ?? 18}%): <span className="font-semibold">Rs.{cartData?.totals?.taxAmount ?? 0}</span>
               </p>
               <p>
+                Discount: <span className="font-semibold text-emerald-700">-Rs.{cartData?.totals?.discountAmount ?? 0}</span>
+              </p>
+              <p>
+                Subtotal after discount:{" "}
+                <span className="font-semibold">Rs.{Math.max(0, (cartData?.totals?.subtotal ?? 0) - (cartData?.totals?.discountAmount ?? 0))}</span>
+              </p>
+              <p>
                 Delivery: <span className="font-semibold">Rs.{cartData?.totals?.shippingCharge ?? 0}</span>
               </p>
               <p>
@@ -276,11 +290,10 @@ export default function ShippingPage() {
             onClick={onContinue}
             className="inline-flex items-center justify-center rounded bg-[#f5c400] px-5 py-2.5 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-[#ffd84d]"
           >
-            Continue to Payment
+            Continue to Billing
           </button>
         </div>
       </section>
     </main>
   );
 }
-

@@ -31,9 +31,9 @@ export default async function WishlistPage() {
   }
 
   return (
-    <main className="rounded border border-zinc-200 bg-white p-4">
-      <h1 className="text-[44px] font-semibold leading-none">{config.account.wishlist.heading}</h1>
-      <div className="mt-4 rounded border border-zinc-200 p-6">
+    <main className="rounded border border-zinc-200 bg-white p-3 sm:p-4">
+      <h1 className="text-[32px] font-semibold leading-none sm:text-[44px]">{config.account.wishlist.heading}</h1>
+      <div className="mt-4 rounded border border-zinc-200 p-4 sm:p-6">
         {items.length ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item, index) => (
@@ -63,8 +63,8 @@ export default async function WishlistPage() {
           </div>
         ) : (
           <>
-            <div className="mx-auto h-72 w-72 rounded-full bg-[#cfe0f8]" />
-            <p className="mt-4 text-center text-zinc-500">{config.account.wishlist.emptyText}</p>
+            <div className="mx-auto h-40 w-40 rounded-full bg-[#cfe0f8] sm:h-56 sm:w-56 md:h-64 md:w-64" />
+            <p className="mt-4 break-words text-center text-zinc-500">{config.account.wishlist.emptyText}</p>
           </>
         )}
       </div>

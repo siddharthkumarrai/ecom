@@ -49,58 +49,46 @@ export async function computeCartTotals(
   const shippingCharge = baseShippingCharge + productWiseShippingCharge;
   let discountAmount = 0;
   let appliedCouponCode = "";
+  let couponMessage = "";
 
   if (couponCode) {
     const normalized = couponCode.trim().toUpperCase();
     const matched = coupons.find((coupon) => coupon?.isActive && String(coupon?.code ?? "").toUpperCase() === normalized);
-    if (matched && subtotal >= (matched.minOrderAmount ?? 0)) {
+    if (!matched) {
+      couponMessage = "Coupon code not found.";
+    } else if (subtotal < (matched.minOrderAmount ?? 0)) {
+      couponMessage = `Minimum order of Rs.${matched.minOrderAmount ?? 0} required for this coupon.`;
+    } else {
       const now = new Date();
       const startsAt = matched.startsAt ? new Date(matched.startsAt) : null;
       const endsAt = matched.endsAt ? new Date(matched.endsAt) : null;
       const isWithinDateWindow = (!startsAt || startsAt <= now) && (!endsAt || endsAt >= now);
-      if (!isWithinDateWindow) {
-        const earlyTaxableAmount = Math.max(0, subtotal);
-        const earlyTaxAmount = (earlyTaxableAmount * taxPercent) / 100;
-        return {
-          subtotal: round2(subtotal),
-          shippingCharge: round2(shippingCharge),
-          taxAmount: round2(earlyTaxAmount),
-          taxPercent: round2(taxPercent),
-          discountAmount: 0,
-          appliedCouponCode: "",
-          total: round2(subtotal + earlyTaxAmount + shippingCharge),
-          hasPrepaidOnly,
-          allCodEligible,
-          config,
-          products: products.map((p) => ({
-            id: String(p._id),
-            name: p.name,
-            sku: p.sku,
-            image: p.images?.[0] ?? "",
-            hsnCode: p.hsnCode ?? "",
-            unitPrice: p.isOnSale && typeof p.salePrice === "number" ? p.salePrice : p.basePrice,
-            stock: p.stock ?? 0,
-            minOrderQty: p.minOrderQty ?? 1,
-            maxOrderQty: p.maxOrderQty ?? 10000,
-            isCODEnabled: !!p.isCODEnabled,
-            isPrepaidOnly: !!p.isPrepaidOnly,
-          })),
-        };
-      }
 
-      if (userId) {
-        const [totalCouponUses, userCouponUses, userOrderCount] = await Promise.all([
-          Order.countDocuments({ couponCode: normalized }),
-          Order.countDocuments({ user: userId, couponCode: normalized }),
-          Order.countDocuments({ user: userId }),
-        ]);
-        if ((matched.usageLimit ?? 0) > 0 && totalCouponUses >= (matched.usageLimit ?? 0)) {
-          // exhausted globally
-        } else if ((matched.perUserLimit ?? 0) > 0 && userCouponUses >= (matched.perUserLimit ?? 0)) {
-          // exhausted for user
-        } else if (matched.firstOrderOnly && userOrderCount > 0) {
-          // not first order
-        } else {
+      if (!isWithinDateWindow) {
+        if (startsAt && startsAt > now) couponMessage = "This coupon is not active yet.";
+        else if (endsAt && endsAt < now) couponMessage = "This coupon has expired.";
+        else couponMessage = "Coupon is not valid right now.";
+      } else {
+        let isEligibleByUsage = true;
+        if (userId) {
+          const [totalCouponUses, userCouponUses, userOrderCount] = await Promise.all([
+            Order.countDocuments({ couponCode: normalized }),
+            Order.countDocuments({ user: userId, couponCode: normalized }),
+            Order.countDocuments({ user: userId }),
+          ]);
+          if ((matched.usageLimit ?? 0) > 0 && totalCouponUses >= (matched.usageLimit ?? 0)) {
+            couponMessage = "Coupon usage limit reached.";
+            isEligibleByUsage = false;
+          } else if ((matched.perUserLimit ?? 0) > 0 && userCouponUses >= (matched.perUserLimit ?? 0)) {
+            couponMessage = "You have already used this coupon the maximum number of times.";
+            isEligibleByUsage = false;
+          } else if (matched.firstOrderOnly && userOrderCount > 0) {
+            couponMessage = "This coupon is valid only for first order.";
+            isEligibleByUsage = false;
+          }
+        }
+
+        if (isEligibleByUsage) {
           const appliesTo = matched.appliesTo ?? "order";
           const targets = Array.isArray(matched.targetIds) ? matched.targetIds.map((id) => String(id)) : [];
           let eligibleSubtotal = subtotal;
@@ -118,49 +106,28 @@ export async function computeCartTotals(
               eligibleSubtotal += unit * item.quantity;
             }
           }
+
           if (eligibleSubtotal <= 0) {
-            discountAmount = 0;
-          } else if (matched.type === "percent") {
-            discountAmount = (eligibleSubtotal * (matched.value ?? 0)) / 100;
+            couponMessage =
+              appliesTo === "product"
+                ? "Coupon is not applicable to the products in your cart."
+                : appliesTo === "category"
+                ? "Coupon is not applicable to the categories in your cart."
+                : "Coupon is not applicable to this cart.";
           } else {
-            discountAmount = Math.min(matched.value ?? 0, eligibleSubtotal);
+            if (matched.type === "percent") {
+              discountAmount = (eligibleSubtotal * (matched.value ?? 0)) / 100;
+            } else {
+              discountAmount = Math.min(matched.value ?? 0, eligibleSubtotal);
+            }
+            if ((matched.maxDiscountAmount ?? 0) > 0) {
+              discountAmount = Math.min(discountAmount, matched.maxDiscountAmount ?? 0);
+            }
+            discountAmount = Math.min(discountAmount, subtotal);
+            appliedCouponCode = normalized;
+            couponMessage = `Coupon applied: ${normalized}`;
           }
-          if ((matched.maxDiscountAmount ?? 0) > 0) {
-            discountAmount = Math.min(discountAmount, matched.maxDiscountAmount ?? 0);
-          }
-          discountAmount = Math.min(discountAmount, subtotal);
-          appliedCouponCode = normalized;
         }
-      } else {
-      const appliesTo = matched.appliesTo ?? "order";
-      const targets = Array.isArray(matched.targetIds) ? matched.targetIds.map((id) => String(id)) : [];
-      let eligibleSubtotal = subtotal;
-      if (appliesTo !== "order") {
-        eligibleSubtotal = 0;
-        for (const item of items) {
-          const p = productById.get(String(item.product));
-          if (!p) continue;
-          const isEligible =
-            appliesTo === "product"
-              ? targets.includes(String(p._id))
-              : targets.includes(String((p as { category?: unknown }).category ?? ""));
-          if (!isEligible) continue;
-          const unit = p.isOnSale && typeof p.salePrice === "number" ? p.salePrice : p.basePrice;
-          eligibleSubtotal += unit * item.quantity;
-        }
-      }
-      if (eligibleSubtotal <= 0) {
-        discountAmount = 0;
-      } else if (matched.type === "percent") {
-        discountAmount = (eligibleSubtotal * (matched.value ?? 0)) / 100;
-      } else {
-        discountAmount = Math.min(matched.value ?? 0, eligibleSubtotal);
-      }
-      if ((matched.maxDiscountAmount ?? 0) > 0) {
-        discountAmount = Math.min(discountAmount, matched.maxDiscountAmount ?? 0);
-      }
-      discountAmount = Math.min(discountAmount, subtotal);
-      appliedCouponCode = normalized;
       }
     }
   }
@@ -176,6 +143,7 @@ export async function computeCartTotals(
     taxPercent: round2(taxPercent),
     discountAmount: round2(discountAmount),
     appliedCouponCode,
+    couponMessage,
     total: round2(total),
     hasPrepaidOnly,
     allCodEligible,
@@ -199,4 +167,3 @@ export async function computeCartTotals(
 function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
-

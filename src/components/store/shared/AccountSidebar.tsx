@@ -15,10 +15,10 @@ export async function AccountSidebar() {
   ];
 
   return (
-    <aside className="rounded border border-zinc-200 bg-white p-4">
-      <div className="mx-auto h-20 w-20 rounded-full bg-zinc-200" />
-      <p className="mt-3 text-center text-[24px] font-semibold leading-none">{user?.name || "Customer"}</p>
-      <p className="text-center text-xs text-zinc-500">{user?.email || clerkUserId || "user"}</p>
+    <aside className="rounded border border-zinc-200 bg-white p-3 sm:p-4">
+      <div className="mx-auto h-16 w-16 rounded-full bg-zinc-200 sm:h-20 sm:w-20" />
+      <p className="mt-3 line-clamp-2 break-words text-center text-xl font-semibold leading-tight sm:text-[24px]">{user?.name || "Customer"}</p>
+      <p className="break-all text-center text-[11px] text-zinc-500 sm:text-xs">{user?.email || clerkUserId || "user"}</p>
       <AccountSidebarNav links={accountLinks} />
       <ClerkSignOutButton
         label={config.account.sidebar.signOutLabel}

@@ -26,25 +26,27 @@ export async function TopCategoriesGridSection({ section, siteConfig }: SectionR
   return (
     <section className="border border-zinc-200 bg-white p-3 md:p-4">
       <SectionHeader title={title} />
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
-        {categories.map((category) => (
-          <Link
-            key={category.id}
-            href={`/category/${category.slug}`}
-            className="group flex min-h-[112px] items-center gap-4 border border-zinc-200 bg-white px-3 py-3 hover:border-[#f5c400]"
-          >
-            <span className="relative inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-[#f7f7f7]">
-              <Image
-                src={String(category.image || "").trim() || "/hero-placeholder.svg"}
-                alt={category.name}
-                fill
-                sizes="64px"
-                className="object-contain p-1"
-              />
-            </span>
-            <span className="line-clamp-2 text-sm font-medium text-zinc-800 md:text-[18px]">{category.name}</span>
-          </Link>
-        ))}
+      <div className="-mx-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex snap-x snap-mandatory gap-2">
+          {categories.map((category) => (
+            <Link
+              key={category.id}
+              href={`/category/${category.slug}`}
+              className="group flex min-h-[104px] min-w-[148px] snap-start items-center gap-3 border border-zinc-200 bg-white px-2.5 py-2.5 hover:border-[#f5c400] sm:min-h-[112px] sm:min-w-[176px] sm:px-3 sm:py-3 md:min-w-[212px]"
+            >
+              <span className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded bg-[#f7f7f7] sm:h-16 sm:w-16">
+                <Image
+                  src={String(category.image || "").trim() || "/hero-placeholder.svg"}
+                  alt={category.name}
+                  fill
+                  sizes="64px"
+                  className="object-contain p-1"
+                />
+              </span>
+              <span className="line-clamp-2 text-xs font-medium text-zinc-800 sm:text-sm md:text-base">{category.name}</span>
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );

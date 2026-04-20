@@ -10,19 +10,30 @@ type CartApiResponse = {
     subtotal: number;
     shippingCharge: number;
     discountAmount?: number;
+    taxAmount?: number;
+    taxPercent?: number;
     appliedCouponCode?: string;
+    couponMessage?: string;
     total?: number;
     products?: Array<{ id: string; name: string; image: string; unitPrice: number }>;
   };
   error?: string;
 };
 
+const COUPON_STORAGE_KEY = "lk_coupon_code";
+
 export function CartClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [data, setData] = useState<CartApiResponse | null>(null);
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState("");
+  const [couponCode, setCouponCode] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return (window.localStorage.getItem(COUPON_STORAGE_KEY) ?? "").trim().toUpperCase();
+  });
+  const [appliedCoupon, setAppliedCoupon] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return (window.localStorage.getItem(COUPON_STORAGE_KEY) ?? "").trim().toUpperCase();
+  });
   const [couponMessage, setCouponMessage] = useState("");
   const [removingProductId, setRemovingProductId] = useState("");
   const [updatingProductId, setUpdatingProductId] = useState("");
@@ -40,9 +51,16 @@ export function CartClient() {
         } else {
           setError("");
           setData(json);
+          if (typeof window !== "undefined") {
+            const persisted = String(json.totals?.appliedCouponCode ?? "").trim().toUpperCase();
+            if (persisted) window.localStorage.setItem(COUPON_STORAGE_KEY, persisted);
+            else window.localStorage.removeItem(COUPON_STORAGE_KEY);
+          }
           if (appliedCoupon.trim()) {
-            if (json.totals?.appliedCouponCode) setCouponMessage(`Coupon applied: ${json.totals.appliedCouponCode}`);
-            else setCouponMessage("Coupon invalid or not eligible.");
+            setCouponMessage(
+              json.totals?.couponMessage ||
+                (json.totals?.appliedCouponCode ? `Coupon applied: ${json.totals.appliedCouponCode}` : "Coupon invalid or not eligible.")
+            );
           } else {
             setCouponMessage("");
           }
@@ -68,6 +86,12 @@ export function CartClient() {
     );
 
   const quantityById = new Map((data?.cart?.items ?? []).map((item) => [item.product, item.quantity]));
+  const subtotal = data?.totals?.subtotal ?? 0;
+  const discountAmount = data?.totals?.discountAmount ?? 0;
+  const shippingCharge = data?.totals?.shippingCharge ?? 0;
+  const taxAmount = data?.totals?.taxAmount ?? 0;
+  const taxPercent = data?.totals?.taxPercent ?? 0;
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
 
   const removeItem = async (productId: string) => {
     setRemovingProductId(productId);
@@ -84,6 +108,12 @@ export function CartClient() {
       return;
     }
     setData(json);
+    if (appliedCoupon.trim()) {
+      setCouponMessage(
+        json.totals?.couponMessage ||
+          (json.totals?.appliedCouponCode ? `Coupon applied: ${json.totals.appliedCouponCode}` : "Coupon invalid or not eligible.")
+      );
+    }
     if (typeof window !== "undefined") window.dispatchEvent(new Event("cart-updated"));
   };
 
@@ -106,6 +136,12 @@ export function CartClient() {
       return;
     }
     setData(json);
+    if (appliedCoupon.trim()) {
+      setCouponMessage(
+        json.totals?.couponMessage ||
+          (json.totals?.appliedCouponCode ? `Coupon applied: ${json.totals.appliedCouponCode}` : "Coupon invalid or not eligible.")
+      );
+    }
     if (typeof window !== "undefined") window.dispatchEvent(new Event("cart-updated"));
   };
 
@@ -179,10 +215,12 @@ export function CartClient() {
             Return to shop
           </Link>
           <div className="text-right text-sm">
-            <p>Subtotal: <span className="font-semibold">Rs.{data?.totals?.subtotal ?? 0}</span></p>
-            <p>Discount: <span className="font-semibold">Rs.{data?.totals?.discountAmount ?? 0}</span></p>
-            <p>Shipping: <span className="font-semibold">Rs.{data?.totals?.shippingCharge ?? 0}</span></p>
-            <p className="text-base font-bold">Total: Rs.{data?.totals?.total ?? (data?.totals?.subtotal ?? 0) + (data?.totals?.shippingCharge ?? 0)}</p>
+            <p>Subtotal: <span className="font-semibold">Rs.{subtotal}</span></p>
+            <p>Coupon Discount: <span className="font-semibold text-emerald-700">-Rs.{discountAmount}</span></p>
+            <p>Subtotal after discount: <span className="font-semibold">Rs.{discountedSubtotal}</span></p>
+            <p>Tax ({taxPercent}%): <span className="font-semibold">Rs.{taxAmount}</span></p>
+            <p>Shipping: <span className="font-semibold">Rs.{shippingCharge}</span></p>
+            <p className="text-base font-bold">Total: Rs.{data?.totals?.total ?? discountedSubtotal + taxAmount + shippingCharge}</p>
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -192,7 +230,17 @@ export function CartClient() {
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
           />
-          <button className="h-9 rounded bg-zinc-900 px-4 text-xs font-semibold text-white" onClick={() => setAppliedCoupon(couponCode.trim())}>
+          <button
+            className="h-9 rounded bg-zinc-900 px-4 text-xs font-semibold text-white"
+            onClick={() => {
+              const normalized = couponCode.trim().toUpperCase();
+              setAppliedCoupon(normalized);
+              if (typeof window !== "undefined") {
+                if (normalized) window.localStorage.setItem(COUPON_STORAGE_KEY, normalized);
+                else window.localStorage.removeItem(COUPON_STORAGE_KEY);
+              }
+            }}
+          >
             Apply Coupon
           </button>
           {couponMessage ? <p className="text-xs text-zinc-600">{couponMessage}</p> : null}

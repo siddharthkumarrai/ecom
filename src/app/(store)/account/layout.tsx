@@ -13,9 +13,9 @@ export default async function AccountLayout({ children }: { children: React.Reac
 
   return (
     <>
-      <div className="grid gap-6 md:grid-cols-[250px_1fr]">
+      <div className="grid gap-4 lg:gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
         <AccountSidebar />
-        <div>{children}</div>
+        <div className="min-w-0">{children}</div>
       </div>
       <Suspense fallback={<div className="mt-6 h-24 animate-pulse rounded-2xl border border-zinc-200 bg-white/80" />}>
         <StoreBottomSections className="mt-6" />

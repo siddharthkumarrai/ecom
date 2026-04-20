@@ -63,8 +63,8 @@ export default async function OrdersPage({ searchParams }: Props) {
   }
 
   return (
-    <main className="rounded border border-zinc-200 bg-white p-4">
-      <h1 className="text-[44px] font-semibold leading-none">{config.account.orders.heading}</h1>
+    <main className="rounded border border-zinc-200 bg-white p-3 sm:p-4">
+      <h1 className="text-[32px] font-semibold leading-none sm:text-[44px]">{config.account.orders.heading}</h1>
       {trackingState === "failed" ? (
         <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           Tracking link is being prepared. Please try &quot;Track Order&quot; again in a moment.
@@ -76,30 +76,30 @@ export default async function OrdersPage({ searchParams }: Props) {
         </p>
       ) : null}
       <div className="mt-4 overflow-x-auto">
-        <table className="min-w-full text-[13px]">
+        <table className="min-w-[760px] text-[13px]">
           <thead className="text-left text-zinc-500">
             <tr>
-              <th className="py-2">{config.account.orders.orderIdLabel}</th>
-              <th className="py-2">{config.account.orders.dateLabel}</th>
-              <th className="py-2">{config.account.orders.amountLabel}</th>
-              <th className="py-2">{config.account.orders.deliveryStatusLabel}</th>
-              <th className="py-2">{config.account.orders.paymentStatusLabel}</th>
-              <th className="py-2">{config.account.orders.optionsLabel}</th>
+              <th className="whitespace-nowrap py-2 pr-4">{config.account.orders.orderIdLabel}</th>
+              <th className="whitespace-nowrap py-2 pr-4">{config.account.orders.dateLabel}</th>
+              <th className="whitespace-nowrap py-2 pr-4">{config.account.orders.amountLabel}</th>
+              <th className="whitespace-nowrap py-2 pr-4">{config.account.orders.deliveryStatusLabel}</th>
+              <th className="whitespace-nowrap py-2 pr-4">{config.account.orders.paymentStatusLabel}</th>
+              <th className="whitespace-nowrap py-2">{config.account.orders.optionsLabel}</th>
             </tr>
           </thead>
           <tbody>
             {orders.length ? (
               orders.map((order) => (
                 <tr key={order.orderId} className="border-t border-zinc-100">
-                  <td className="py-3 text-zinc-700">{order.orderId}</td>
-                  <td className="py-3 text-zinc-600">{new Date(order.createdAt).toLocaleDateString()}</td>
-                  <td className="py-3 text-zinc-700">₹ {order.totalAmount.toFixed(2)}</td>
-                  <td className="py-3 text-zinc-600">
+                  <td className="whitespace-nowrap py-3 pr-4 text-zinc-700">{order.orderId}</td>
+                  <td className="whitespace-nowrap py-3 pr-4 text-zinc-600">{new Date(order.createdAt).toLocaleDateString()}</td>
+                  <td className="whitespace-nowrap py-3 pr-4 text-zinc-700">₹ {order.totalAmount.toFixed(2)}</td>
+                  <td className="whitespace-nowrap py-3 pr-4 text-zinc-600">
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${deliveryStatusBadgeClass(order.deliveryStatus)}`}>
                       {order.deliveryStatus.replaceAll("_", " ")}
                     </span>
                   </td>
-                  <td className="py-3 text-zinc-600">
+                  <td className="whitespace-nowrap py-3 pr-4 text-zinc-600">
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${paymentStatusBadgeClass(order.paymentStatus)}`}>
                       {order.paymentStatus.replaceAll("_", " ")}
                     </span>
@@ -134,4 +134,3 @@ export default async function OrdersPage({ searchParams }: Props) {
     </main>
   );
 }
-

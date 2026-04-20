@@ -27,6 +27,8 @@ type CartSummary = {
   };
 };
 
+const COUPON_STORAGE_KEY = "lk_coupon_code";
+
 function emptyAddress(): AddressForm {
   return {
     name: "",
@@ -42,6 +44,10 @@ function emptyAddress(): AddressForm {
 
 export default function BillingPage() {
   const router = useRouter();
+  const [couponCode] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return (window.localStorage.getItem(COUPON_STORAGE_KEY) ?? "").trim().toUpperCase();
+  });
   const [cartData, setCartData] = useState<CartSummary | null>(null);
   const [cartLoading, setCartLoading] = useState(true);
   const [sameAsShipping, setSameAsShipping] = useState(() => {
@@ -61,7 +67,8 @@ export default function BillingPage() {
   useEffect(() => {
     const loadCart = async () => {
       try {
-        const res = await fetch("/api/v1/cart", { credentials: "include" });
+        const couponQuery = couponCode ? `?couponCode=${encodeURIComponent(couponCode)}` : "";
+        const res = await fetch(`/api/v1/cart${couponQuery}`, { credentials: "include" });
         const json = (await res.json().catch(() => ({}))) as CartSummary;
         if (res.ok) setCartData(json);
       } finally {
@@ -69,7 +76,7 @@ export default function BillingPage() {
       }
     };
     void loadCart();
-  }, []);
+  }, [couponCode]);
 
   const onContinue = () => {
     if (sameAsShipping) {
@@ -93,9 +100,10 @@ export default function BillingPage() {
         ) : (
           <div className="mt-3 space-y-1 text-sm text-zinc-700">
             <p>Subtotal: <span className="font-semibold">Rs.{cartData?.totals?.subtotal ?? 0}</span></p>
+            <p>Discount: <span className="font-semibold text-emerald-700">-Rs.{cartData?.totals?.discountAmount ?? 0}</span></p>
+            <p>Subtotal after discount: <span className="font-semibold">Rs.{Math.max(0, (cartData?.totals?.subtotal ?? 0) - (cartData?.totals?.discountAmount ?? 0))}</span></p>
             <p>Tax ({cartData?.totals?.taxPercent ?? 18}%): <span className="font-semibold">Rs.{cartData?.totals?.taxAmount ?? 0}</span></p>
             <p>Delivery: <span className="font-semibold">Rs.{cartData?.totals?.shippingCharge ?? 0}</span></p>
-            <p>Discount: <span className="font-semibold">-Rs.{cartData?.totals?.discountAmount ?? 0}</span></p>
             <p className="pt-1 text-base text-zinc-900">Grand Total: <span className="font-bold">Rs.{cartData?.totals?.total ?? 0}</span></p>
           </div>
         )}

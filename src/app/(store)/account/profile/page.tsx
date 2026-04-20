@@ -39,30 +39,30 @@ export default async function ProfilePage() {
   }
 
   return (
-    <main className="space-y-5">
-      <section className="rounded border border-zinc-200 bg-white p-4">
-        <h1 className="text-[44px] font-semibold leading-none">{config.account.profile.heading}</h1>
-        <h2 className="mt-5 text-xl font-semibold">{config.account.profile.basicInfoHeading}</h2>
+    <main className="space-y-4 sm:space-y-5">
+      <section className="rounded border border-zinc-200 bg-white p-3 sm:p-4">
+        <h1 className="text-[32px] font-semibold leading-none sm:text-[44px]">{config.account.profile.heading}</h1>
+        <h2 className="mt-4 text-lg font-semibold sm:mt-5 sm:text-xl">{config.account.profile.basicInfoHeading}</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-[180px_1fr] md:items-center">
           <label className="text-sm text-zinc-600">{config.account.profile.yourNameLabel}</label>
-          <input className="h-9 rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.yourNamePlaceholder} defaultValue="sidd" />
+          <input className="h-9 w-full rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.yourNamePlaceholder} defaultValue="sidd" />
           <label className="text-sm text-zinc-600">{config.account.profile.yourPhoneLabel}</label>
-          <input className="h-9 rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.yourPhonePlaceholder} />
+          <input className="h-9 w-full rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.yourPhonePlaceholder} />
           <label className="text-sm text-zinc-600">{config.account.profile.photoLabel}</label>
-          <input className="h-9 rounded border border-zinc-300 px-3 text-sm" type="file" />
+          <input className="w-full rounded border border-zinc-300 px-3 py-1.5 text-sm" type="file" />
           <label className="text-sm text-zinc-600">{config.account.profile.salesCodeLabel}</label>
-          <input className="h-9 rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.salesCodePlaceholder} />
+          <input className="h-9 w-full rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.salesCodePlaceholder} />
           <label className="text-sm text-zinc-600">{config.account.profile.yourPasswordLabel}</label>
-          <input className="h-9 rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.yourPasswordPlaceholder} />
+          <input className="h-9 w-full rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.yourPasswordPlaceholder} />
           <label className="text-sm text-zinc-600">{config.account.profile.confirmPasswordLabel}</label>
-          <input className="h-9 rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.confirmPasswordPlaceholder} />
+          <input className="h-9 w-full rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.confirmPasswordPlaceholder} />
         </div>
-        <div className="mt-4 flex justify-end">
-          <button className="rounded bg-brand-yellow px-4 py-2 text-sm font-semibold">{config.account.profile.updateProfileButtonLabel}</button>
+        <div className="mt-4 flex justify-stretch sm:justify-end">
+          <button className="w-full rounded bg-brand-yellow px-4 py-2 text-sm font-semibold sm:w-auto">{config.account.profile.updateProfileButtonLabel}</button>
         </div>
       </section>
 
-      <section className="rounded border border-zinc-200 bg-white p-4">
+      <section className="rounded border border-zinc-200 bg-white p-3 sm:p-4">
         <h2 className="text-xl font-semibold">{config.account.profile.addressHeading}</h2>
         <div className="mt-4">
           <AddressManager initialAddresses={addresses} />
@@ -71,4 +71,3 @@ export default async function ProfilePage() {
     </main>
   );
 }
-
