@@ -36,14 +36,24 @@ export default async function WishlistPage() {
       <div className="mt-4 rounded border border-zinc-200 p-6">
         {items.length ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((item) => (
+            {items.map((item, index) => (
               <article key={item.id} className="relative rounded border border-zinc-200 p-3">
                 <div className="absolute right-2 top-2">
                   <WishlistHeartButton productId={item.id} initialInWishlist />
                 </div>
                 <Link href={`/products/${item.slug}`} className="block">
                   <div className="relative h-40 w-full rounded bg-zinc-50">
-                    {item.image ? <Image src={item.image} alt={item.name} fill className="object-contain p-2" sizes="280px" /> : null}
+                    {item.image ? (
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        className="object-contain p-2"
+                        sizes="280px"
+                        priority={index === 0}
+                        loading={index === 0 ? "eager" : "lazy"}
+                      />
+                    ) : null}
                   </div>
                   <p className="mt-2 line-clamp-2 text-sm font-semibold text-zinc-800">{item.name}</p>
                   <p className="text-sm font-bold text-zinc-900">₹ {item.price}</p>
@@ -61,4 +71,3 @@ export default async function WishlistPage() {
     </main>
   );
 }
-

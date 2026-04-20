@@ -104,10 +104,20 @@ export default async function DashboardPage() {
           {wishlistItems.length ? (
             <>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {wishlistItems.slice(0, 6).map((item) => (
+                {wishlistItems.slice(0, 6).map((item, index) => (
                   <Link key={item.id} href={`/products/${item.slug}`} className="rounded border border-zinc-200 p-3 hover:bg-zinc-50">
                     <div className="relative h-28 w-full rounded bg-zinc-50">
-                      {item.image ? <Image src={item.image} alt={item.name} fill className="object-contain p-2" sizes="220px" /> : null}
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          className="object-contain p-2"
+                          sizes="220px"
+                          priority={index === 0}
+                          loading={index === 0 ? "eager" : "lazy"}
+                        />
+                      ) : null}
                     </div>
                     <p className="mt-2 line-clamp-2 text-sm font-semibold text-zinc-800">{item.name}</p>
                     <p className="text-sm font-bold text-zinc-900">₹ {item.price}</p>
