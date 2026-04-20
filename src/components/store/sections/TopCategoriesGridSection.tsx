@@ -19,14 +19,6 @@ export async function TopCategoriesGridSection({ section, siteConfig }: SectionR
   const categories = (fromSlugs.length ? fromSlugs : fallback)
     .filter((c): c is NonNullable<typeof c> => c != null)
     .slice(0, 10);
-  const categoryImages =
-    section.config.categoryImages && typeof section.config.categoryImages === "object" && !Array.isArray(section.config.categoryImages)
-      ? Object.fromEntries(
-          Object.entries(section.config.categoryImages as Record<string, unknown>)
-            .map(([slug, image]) => [slug, String(image || "").trim()])
-            .filter(([, image]) => image)
-        )
-      : {};
   if (!categories.length) return null;
 
   return (
@@ -41,7 +33,7 @@ export async function TopCategoriesGridSection({ section, siteConfig }: SectionR
           >
             <span className="relative inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-[#f7f7f7]">
               <Image
-                src={categoryImages[category.slug] || String(category.image || "").trim() || "/hero-placeholder.svg"}
+                src={String(category.image || "").trim() || "/hero-placeholder.svg"}
                 alt={category.name}
                 fill
                 sizes="64px"

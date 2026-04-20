@@ -169,10 +169,11 @@ export async function GET() {
 
   await connectDB();
   const doc = await SiteConfigModel.findOne({ key: "main" })
-    .select("homepage.sections branding.storeName branding.logoUrl appearance.navbarBg footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
+    .select("homepage.sections branding.storeName branding.logoUrl seo.siteName seo.favicon appearance.navbarBg footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
     .lean<{
       homepage?: { sections?: unknown[] };
       branding?: { storeName?: string; logoUrl?: string };
+      seo?: { siteName?: string; favicon?: string };
       appearance?: { navbarBg?: string };
       footer?: {
         columns?: Array<{ title?: string; links?: Array<{ label?: string; href?: string }> }>;
@@ -186,6 +187,8 @@ export async function GET() {
     } | null>();
   const globalStoreName = typeof doc?.branding?.storeName === "string" ? doc.branding.storeName : "";
   const globalLogoUrl = typeof doc?.branding?.logoUrl === "string" ? doc.branding.logoUrl : "";
+  const globalStoreTitle = typeof doc?.seo?.siteName === "string" ? doc.seo.siteName : "";
+  const globalFavicon = typeof doc?.seo?.favicon === "string" ? doc.seo.favicon : "";
   const globalNavbarBg = typeof doc?.appearance?.navbarBg === "string" ? doc.appearance.navbarBg : "";
   const globalFooterColumns = sanitizeFooterColumns(doc?.footer?.columns ?? []);
   const globalFooterPhones = Array.isArray(doc?.footer?.contactPhone)
@@ -214,6 +217,8 @@ export async function GET() {
           ? {
               ...baseConfig,
               storeName: String(baseConfig.storeName ?? globalStoreName ?? ""),
+              storeTitle: String(baseConfig.storeTitle ?? globalStoreTitle ?? ""),
+              favicon: String(baseConfig.favicon ?? globalFavicon ?? ""),
               navbarBg: String(baseConfig.navbarBg ?? globalNavbarBg ?? ""),
             }
           : row.type === "footer"
@@ -278,6 +283,10 @@ export async function PUT(req: Request) {
   const announcementText = typeof announcementTextRaw === "string" ? announcementTextRaw.trim() : "";
   const navbarStoreNameRaw = firstNavbarSection?.config?.storeName;
   const navbarStoreName = typeof navbarStoreNameRaw === "string" ? navbarStoreNameRaw.trim() : "";
+  const navbarStoreTitleRaw = firstNavbarSection?.config?.storeTitle;
+  const navbarStoreTitle = typeof navbarStoreTitleRaw === "string" ? navbarStoreTitleRaw.trim() : "";
+  const navbarFaviconRaw = firstNavbarSection?.config?.favicon;
+  const navbarFavicon = typeof navbarFaviconRaw === "string" ? navbarFaviconRaw.trim() : "";
   const navbarBgRaw = firstNavbarSection?.config?.navbarBg;
   const navbarBg = typeof navbarBgRaw === "string" ? navbarBgRaw.trim() : "";
   const footerStoreNameRaw = firstFooterSection?.config?.storeName;
@@ -304,7 +313,7 @@ export async function PUT(req: Request) {
 
   if (firstAnnouncementSection || firstNavbarSection || firstFooterSection) {
     const existingDoc = await SiteConfigModel.findOne({ key: "main" })
-        .select("homepage.sections announcement.messages branding.storeName branding.logoUrl appearance.navbarBg footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
+        .select("homepage.sections announcement.messages branding.storeName branding.logoUrl seo.siteName seo.favicon appearance.navbarBg footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
         .lean<{
           homepage?: {
             sections?: Array<{
@@ -324,6 +333,10 @@ export async function PUT(req: Request) {
           branding?: {
             storeName?: string;
             logoUrl?: string;
+          };
+          seo?: {
+            siteName?: string;
+            favicon?: string;
           };
           appearance?: {
             navbarBg?: string;
@@ -383,6 +396,26 @@ export async function PUT(req: Request) {
         setPatch["branding.storeName"] = navbarStoreName;
       }
 
+      const existingStoreTitleRaw = existingNavbarSection?.config?.storeTitle;
+      const existingSectionStoreTitle = typeof existingStoreTitleRaw === "string" ? existingStoreTitleRaw.trim() : "";
+      const existingGlobalStoreTitle = typeof existingDoc?.seo?.siteName === "string"
+        ? existingDoc.seo.siteName.trim()
+        : "";
+      const currentStoreTitle = existingSectionStoreTitle || existingGlobalStoreTitle;
+      if (navbarStoreTitle && navbarStoreTitle !== currentStoreTitle) {
+        setPatch["seo.siteName"] = navbarStoreTitle;
+      }
+
+      const existingFaviconRaw = existingNavbarSection?.config?.favicon;
+      const existingSectionFavicon = typeof existingFaviconRaw === "string" ? existingFaviconRaw.trim() : "";
+      const existingGlobalFavicon = typeof existingDoc?.seo?.favicon === "string"
+        ? existingDoc.seo.favicon.trim()
+        : "";
+      const currentFavicon = existingSectionFavicon || existingGlobalFavicon;
+      if (navbarFavicon !== currentFavicon) {
+        setPatch["seo.favicon"] = navbarFavicon;
+      }
+
       const existingNavbarBgRaw = existingNavbarSection?.config?.navbarBg;
       const existingSectionNavbarBg = typeof existingNavbarBgRaw === "string" ? existingNavbarBgRaw.trim() : "";
       const existingGlobalNavbarBg = typeof existingDoc?.appearance?.navbarBg === "string"
@@ -422,6 +455,7 @@ export async function PUT(req: Request) {
   }
 
   await SiteConfigModel.updateOne({ key: "main" }, { $set: setPatch }, { upsert: true });
+  revalidatePath("/", "layout");
   revalidatePath("/");
   return json({ ok: true, sections: parsed.data.sections });
 }

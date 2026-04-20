@@ -29,6 +29,36 @@ interface HeroBannerProps {
   autoplayMs?: number;
 }
 
+function renderFlippingTitleWords(title: string, isActive: boolean) {
+  const lines = title.split("\n");
+  let wordIndex = 0;
+
+  return lines.map((line, lineIndex) => {
+    const words = line.trim().split(/\s+/).filter(Boolean);
+
+    return (
+      <span key={`hero-title-line-${lineIndex}`} className="block">
+        {words.map((word, index) => {
+          const currentWordIndex = wordIndex;
+          wordIndex += 1;
+          return (
+            <span
+              key={`hero-title-word-${lineIndex}-${currentWordIndex}`}
+              className={`hero-flip-word ${isActive ? "hero-flip-word-active" : ""}`}
+              style={{
+                animationDelay: isActive ? `${currentWordIndex * 70}ms` : "0ms",
+                marginRight: index === words.length - 1 ? "0" : "0.22em",
+              }}
+            >
+              {word}
+            </span>
+          );
+        })}
+      </span>
+    );
+  });
+}
+
 export function HeroBanner({
   eyebrow,
   title,
@@ -67,6 +97,14 @@ export function HeroBanner({
     }, autoplayMs);
     return () => window.clearInterval(timer);
   }, [computedSlides.length, autoplayMs]);
+
+  useEffect(() => {
+    setActiveSlide((current) => {
+      if (computedSlides.length <= 0) return 0;
+      if (current < computedSlides.length) return current;
+      return computedSlides.length - 1;
+    });
+  }, [computedSlides.length]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     setIsDragging(true);
@@ -121,54 +159,62 @@ export function HeroBanner({
           <div
             className="flex transition-transform duration-700 ease-out"
             style={{
-              width: `${computedSlides.length * 100}%`,
-              transform: `translateX(calc(-${activeSlide * (100 / computedSlides.length)}% + ${dragDeltaX}px))`,
+              transform: `translateX(calc(-${activeSlide * 100}% + ${dragDeltaX}px))`,
               transitionDuration: isDragging ? "0ms" : "700ms",
             }}
           >
-            {computedSlides.map((slide, index) => (
-              <div
-                key={`${slide.title}-${index}`}
-                className="relative w-full shrink-0 bg-[linear-gradient(120deg,#f8f8f8_0%,#f3f3f3_45%,#f0f0f0_100%)] min-h-[184px] sm:min-h-[220px] md:min-h-[390px]"
-              >
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.7),rgba(255,255,255,0)_55%)]" />
-                <div className="relative grid min-h-[184px] grid-cols-2 items-center sm:min-h-[220px] md:min-h-[390px] md:grid-cols-[1fr_1.3fr]">
-                  <div className="flex h-full flex-col justify-center px-2.5 py-2 sm:px-3.5 sm:py-3 md:px-8 md:py-8">
-                    {eyebrow ? (
-                      <p className="text-[7px] font-medium uppercase tracking-[0.14em] text-zinc-500/80 sm:text-[8px] md:text-[10px]">
-                        {eyebrow}
-                      </p>
-                    ) : null}
-                    <h1 className="mt-0.5 max-w-[150px] whitespace-pre-line text-[clamp(12px,4.2vw,19px)] font-light uppercase leading-[0.98] tracking-[-0.01em] text-zinc-900 sm:mt-1 sm:max-w-[180px] sm:text-[clamp(14px,4.5vw,22px)] md:max-w-[430px] md:text-[clamp(30px,4.2vw,56px)]">
-                      {slide.title}
-                    </h1>
-                    {slide.subtitle ? (
-                      <p className="mt-1 max-w-[150px] text-[7px] font-semibold uppercase tracking-[0.01em] text-zinc-900 sm:mt-1.5 sm:max-w-[180px] sm:text-[8px] md:mt-2 md:max-w-[430px] md:text-[15px] md:leading-tight">
-                        {slide.subtitle}
-                      </p>
-                    ) : null}
-                    <div className="mt-1.5 sm:mt-2.5 md:mt-6">
-                      <Link
-                        href={slide.ctaHref}
-                        className="inline-flex items-center justify-center rounded-[7px] bg-[#f5c400] px-2.5 py-1 text-[10px] font-medium text-zinc-900 transition hover:bg-[#ffd84d] sm:rounded-[10px] sm:px-3.5 sm:py-1.5 sm:text-[12px] md:min-w-[230px] md:px-8 md:py-3 md:text-[16px]"
+            {computedSlides.map((slide, index) => {
+              const isActive = activeSlide === index;
+              return (
+                <div
+                  key={`${slide.title}-${index}`}
+                  className="relative w-full shrink-0 flex-none bg-[linear-gradient(120deg,#f8f8f8_0%,#f3f3f3_45%,#f0f0f0_100%)] min-h-[184px] sm:min-h-[220px] md:min-h-[390px]"
+                >
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.7),rgba(255,255,255,0)_55%)]" />
+                  <div className="relative grid min-h-[184px] grid-cols-2 items-center sm:min-h-[220px] md:min-h-[390px] md:grid-cols-[1fr_1.3fr]">
+                    <div className="flex h-full flex-col justify-center px-2.5 py-2 sm:px-3.5 sm:py-3 md:px-8 md:py-8">
+                      <div
+                        className={`transition-all duration-700 ease-out ${
+                          isActive ? "hero-slide-text-enter translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+                        }`}
                       >
-                        {slide.ctaLabel}
-                      </Link>
+                        {eyebrow ? (
+                          <p className="text-[7px] font-medium uppercase tracking-[0.14em] text-zinc-500/80 sm:text-[8px] md:text-[10px]">
+                            {eyebrow}
+                          </p>
+                        ) : null}
+                        <h1 className="mt-0.5 max-w-[150px] whitespace-pre-line text-[clamp(12px,4.2vw,19px)] font-light uppercase leading-[0.98] tracking-[-0.01em] text-zinc-900 sm:mt-1 sm:max-w-[180px] sm:text-[clamp(14px,4.5vw,22px)] md:max-w-[430px] md:text-[clamp(30px,4.2vw,56px)]">
+                          {renderFlippingTitleWords(slide.title, isActive)}
+                        </h1>
+                        {slide.subtitle ? (
+                          <p className="mt-1 max-w-[150px] text-[7px] font-semibold uppercase tracking-[0.01em] text-zinc-900 sm:mt-1.5 sm:max-w-[180px] sm:text-[8px] md:mt-2 md:max-w-[430px] md:text-[15px] md:leading-tight">
+                            {slide.subtitle}
+                          </p>
+                        ) : null}
+                        <div className="mt-1.5 sm:mt-2.5 md:mt-6">
+                          <Link
+                            href={slide.ctaHref}
+                            className="inline-flex items-center justify-center rounded-[7px] bg-[#f5c400] px-2.5 py-1 text-[10px] font-medium text-zinc-900 transition hover:bg-[#ffd84d] sm:rounded-[10px] sm:px-3.5 sm:py-1.5 sm:text-[12px] md:min-w-[230px] md:px-8 md:py-3 md:text-[16px]"
+                          >
+                            {slide.ctaLabel}
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="relative flex min-h-[184px] items-center justify-center sm:min-h-[220px] md:min-h-[390px]">
+                      <Image
+                        src={slide.imageUrl || "/hero-placeholder.svg"}
+                        alt={slide.title}
+                        fill
+                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 100vw, 66vw"
+                        className={`object-contain object-center p-1 sm:p-0 transition-all duration-700 md:p-5 ${isActive ? "hero-slide-image-enter scale-[1.03] sm:scale-[1.06] md:scale-100 opacity-100" : "scale-95 opacity-70"}`}
+                        draggable={false}
+                      />
                     </div>
                   </div>
-                  <div className="relative flex min-h-[184px] items-center justify-center sm:min-h-[220px] md:min-h-[390px]">
-                    <Image
-                      src={slide.imageUrl || "/hero-placeholder.svg"}
-                      alt={slide.title}
-                      fill
-                      sizes="(max-width: 768px) 50vw, (max-width: 1024px) 100vw, 66vw"
-                      className={`object-contain object-center p-1 sm:p-0 transition-all duration-700 md:p-5 ${activeSlide === index ? "scale-[1.03] sm:scale-[1.06] md:scale-100 opacity-100" : "scale-95 opacity-70"}`}
-                      draggable={false}
-                    />
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-2 md:bottom-4 md:left-6 md:translate-x-0">

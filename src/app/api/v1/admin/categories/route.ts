@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth/requireAdmin";
 const CreateSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
+  image: z.string().optional().default(""),
   description: z.string().optional().default(""),
 });
 
@@ -29,7 +30,11 @@ export async function POST(req: Request) {
 
   await connectDB();
   try {
-    const item = await Category.create({ ...parsed.data, isActive: true });
+    const item = await Category.create({
+      ...parsed.data,
+      image: parsed.data.image.trim(),
+      isActive: true,
+    });
     return json({ item }, { status: 201 });
   } catch (e) {
     const maybeMongo = e as { code?: number; keyPattern?: Record<string, unknown> };
@@ -37,4 +42,3 @@ export async function POST(req: Request) {
     return error("Failed to create category", 500);
   }
 }
-

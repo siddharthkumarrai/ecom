@@ -9,6 +9,7 @@ const UpdateSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(1).optional(),
   isActive: z.boolean().optional(),
+  image: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -28,7 +29,13 @@ export async function PATCH(req: Request, { params }: Params) {
 
   await connectDB();
   try {
-    const item = await Category.findByIdAndUpdate(id, { $set: parsed.data }, { new: true }).lean();
+    const updateData: Record<string, unknown> = { ...parsed.data };
+    if (typeof parsed.data.image === "string") {
+      updateData.image = parsed.data.image.trim();
+    } else {
+      delete updateData.image;
+    }
+    const item = await Category.findByIdAndUpdate(id, { $set: updateData }, { new: true }).lean();
     if (!item) return error("Category not found", 404);
     return json({ item });
   } catch (e) {

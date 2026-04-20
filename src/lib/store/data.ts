@@ -16,6 +16,10 @@ function toPlainRecord(value: unknown): Record<string, unknown> {
   }
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function mapDbProductToStoreProduct(
   product: {
     _id: unknown;
@@ -101,6 +105,32 @@ export async function getTopCategoriesOrMock() {
     };
   } catch {
     return { source: "mock" as const, categories: mockCategories.map(c => ({ ...c, image: c.image ?? "" })) };
+  }
+}
+
+export async function getAllActiveCategoriesFromDb() {
+  try {
+    await connectDB();
+    const categories = await Category.find({ isActive: true })
+      .sort({ order: 1, name: 1 })
+      .select("name slug image")
+      .lean();
+    return {
+      source: "db" as const,
+      categories: categories.map((category) => ({
+        id: String(category._id),
+        name: category.name,
+        slug: category.slug,
+        image: typeof category.image === "string" ? category.image : "",
+      })),
+      dbError: undefined as string | undefined,
+    };
+  } catch {
+    return {
+      source: "db" as const,
+      categories: [] as Array<{ id: string; name: string; slug: string; image: string }>,
+      dbError: "Live category database is unavailable.",
+    };
   }
 }
 
@@ -313,6 +343,86 @@ export async function getProductsByBrandSlugOrMock(slug: string, limit = 24) {
     return { source: "mock" as const, products: mockProducts.filter((p) => p.brandSlug === slug) };
   }
 }
+
+export async function searchStoreProductsOrMock({
+  query = "",
+  categorySlug = "all",
+  limit = 80,
+}: {
+  query?: string;
+  categorySlug?: string;
+  limit?: number;
+}): Promise<{ source: "db"; products: StoreProduct[]; dbError?: string }> {
+  const normalizedQuery = String(query || "").trim();
+  const normalizedCategorySlug = String(categorySlug || "all").trim().toLowerCase();
+  const useCategoryFilter = normalizedCategorySlug && normalizedCategorySlug !== "all";
+  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(500, Math.trunc(limit))) : 80;
+
+  try {
+    await connectDB();
+
+    const filter: Record<string, unknown> = { isActive: true };
+
+    if (useCategoryFilter) {
+      const category = await Category.findOne({ slug: normalizedCategorySlug, isActive: true }).select("_id").lean();
+      if (!category) return { source: "db" as const, products: [] as StoreProduct[] };
+      filter.category = category._id;
+    }
+
+    if (normalizedQuery) {
+      const regex = new RegExp(escapeRegex(normalizedQuery), "i");
+      filter.$or = [
+        { name: regex },
+        { partNumber: regex },
+        { slug: regex },
+        { description: regex },
+        { tags: regex },
+      ];
+    }
+
+    const items = await Product.find(filter)
+      .populate("category", "slug")
+      .populate("brand", "slug name")
+      .sort({ createdAt: -1 })
+      .limit(safeLimit)
+      .select("name slug partNumber images category brand basePrice costPrice salePrice isOnSale stock averageRating reviewCount description specifications")
+      .lean();
+
+    if (items.length) {
+      const mapped = items.map<StoreProduct>((item) => {
+        const categorySlugValue =
+          typeof (item as { category?: unknown }).category === "object" &&
+          (item as { category?: { slug?: string } }).category?.slug
+            ? String((item as { category?: { slug?: string } }).category?.slug)
+            : "";
+        const brandSlugValue =
+          typeof (item as { brand?: unknown }).brand === "object" &&
+          (item as { brand?: { slug?: string } }).brand?.slug
+            ? String((item as { brand?: { slug?: string } }).brand?.slug)
+            : "";
+        const brandNameValue =
+          typeof (item as { brand?: unknown }).brand === "object" &&
+          (item as { brand?: { name?: string } }).brand?.name
+            ? String((item as { brand?: { name?: string } }).brand?.name)
+            : "";
+        return {
+          ...mapDbProductToStoreProduct(item, { categorySlug: categorySlugValue, brandSlug: brandSlugValue }),
+          brandName: brandNameValue,
+        };
+      });
+      return { source: "db" as const, products: mapped };
+    }
+    return { source: "db" as const, products: [] as StoreProduct[] };
+  } catch {
+    return {
+      source: "db" as const,
+      products: [] as StoreProduct[],
+      dbError: "Live product database is unavailable.",
+    };
+  }
+}
+
+export const searchStoreProductsFromDb = searchStoreProductsOrMock;
 
 export async function getBrandBySlugOrMock(slug: string) {
   try {

@@ -5,6 +5,10 @@ import { Brand } from "@/lib/db/models/Brand.model";
 import { error, json } from "@/lib/api/response";
 import { z } from "zod";
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 const QuerySchema = z.object({
   q: z.string().optional(),
   category: z.string().optional(),
@@ -21,21 +25,33 @@ export async function GET(req: Request) {
   if (!parsed.success) return error("Invalid query", 400, parsed.error.flatten());
 
   const { q, category, brand, inStock, page, limit } = parsed.data;
+  const normalizedQuery = (q ?? "").trim();
+  const normalizedCategory = (category ?? "").trim().toLowerCase();
+  const normalizedBrand = (brand ?? "").trim().toLowerCase();
 
   await connectDB();
 
   const filter: Record<string, unknown> = { isActive: true };
 
-  if (q) filter.$text = { $search: q };
+  if (normalizedQuery) {
+    const regex = new RegExp(escapeRegex(normalizedQuery), "i");
+    filter.$or = [
+      { name: regex },
+      { partNumber: regex },
+      { slug: regex },
+      { description: regex },
+      { tags: regex },
+    ];
+  }
 
-  if (category) {
-    const cat = await Category.findOne({ slug: category }).select("_id").lean();
+  if (normalizedCategory && normalizedCategory !== "all") {
+    const cat = await Category.findOne({ slug: normalizedCategory }).select("_id").lean();
     if (!cat) return json({ items: [], page, limit, total: 0 });
     filter.category = cat._id;
   }
 
-  if (brand) {
-    const b = await Brand.findOne({ slug: brand }).select("_id").lean();
+  if (normalizedBrand && normalizedBrand !== "all") {
+    const b = await Brand.findOne({ slug: normalizedBrand }).select("_id").lean();
     if (!b) return json({ items: [], page, limit, total: 0 });
     filter.brand = b._id;
   }
@@ -47,7 +63,7 @@ export async function GET(req: Request) {
 
   const [items, total] = await Promise.all([
     Product.find(filter)
-      .sort(q ? { score: { $meta: "textScore" } } : { createdAt: -1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .select("name slug partNumber images basePrice costPrice salePrice isOnSale stock averageRating reviewCount")
@@ -57,4 +73,3 @@ export async function GET(req: Request) {
 
   return json({ items, page, limit, total });
 }
-

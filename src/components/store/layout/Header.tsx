@@ -7,6 +7,7 @@ import { AllCategoryMenu } from "@/components/store/layout/AllCategoryMenu";
 import { SuperDealsMenu } from "@/components/store/layout/SuperDealsMenu";
 import { GitCompareArrows, Heart, Menu, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Product } from "@/lib/store/types";
 import { getCompareProductIds } from "@/components/store/compare/compare-storage";
 import { ClerkSignOutButton } from "@/components/store/shared/ClerkSignOutButton";
@@ -64,17 +65,23 @@ export function Header({
   customerCareLabel,
   topNavCategoryLimit,
 }: HeaderProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
   const [compareCount, setCompareCount] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [query, setQuery] = useState("");
+  const [searchCategory, setSearchCategory] = useState("all");
   const safeTopNavCategoryLimit = Number.isFinite(topNavCategoryLimit) ? topNavCategoryLimit : 6;
   const visibleCategoryLimit = Math.max(0, safeTopNavCategoryLimit);
   const navCategories = visibleCategoryLimit > 0 ? categories.slice(0, visibleCategoryLimit) : categories;
   const resolvedStoreName = String(branding.storeName || "").trim() || "lumenskart";
   const resolvedLogoUrl = String(branding.logoUrl || "").trim();
   const hasBrandLogo = Boolean(resolvedLogoUrl);
+  const categoryExists = (slug: string) => slug === "all" || categories.some((category) => category.slug === slug);
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -111,6 +118,24 @@ export function Header({
     };
   }, []);
 
+  useEffect(() => {
+    if (!pathname?.startsWith("/search")) return;
+    const nextQuery = (searchParams?.get("q") ?? "").trim();
+    const nextCategoryRaw = (searchParams?.get("category") ?? "all").trim();
+    const nextCategory = categoryExists(nextCategoryRaw) ? nextCategoryRaw : "all";
+    setQuery(nextQuery);
+    setSearchCategory(nextCategory);
+  }, [pathname, searchParams, categories]);
+
+  const runSearch = () => {
+    const normalizedQuery = query.trim();
+    const normalizedCategory = searchCategory.trim();
+    const params = new URLSearchParams();
+    if (normalizedQuery) params.set("q", normalizedQuery);
+    if (normalizedCategory && normalizedCategory !== "all") params.set("category", normalizedCategory);
+    router.push(`/search${params.toString() ? `?${params.toString()}` : ""}`);
+  };
+
   return (
     <header className="border-b border-zinc-200">
       <div style={{ backgroundColor: appearance.navbarBg }}>
@@ -144,24 +169,47 @@ export function Header({
             <Menu size={18} strokeWidth={2.2} />
           </button>
           <div className="hidden min-w-0 flex-1 items-center md:flex">
-            <div className="flex h-10 w-full overflow-hidden rounded-full border border-zinc-900/10 bg-white shadow-sm">
+            <form
+              className="flex h-10 w-full overflow-hidden rounded-full border border-zinc-900/10 bg-white shadow-sm"
+              onSubmit={(event) => {
+                event.preventDefault();
+                runSearch();
+              }}
+            >
               <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
                 className="min-w-0 flex-1 border-0 bg-transparent px-5 text-sm outline-none"
                 placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
               />
-              <div className="flex items-center border-l border-zinc-200 px-4 text-[13px] text-zinc-600">
-                {searchCategoryLabel}
-              </div>
+              <select
+                value={searchCategory}
+                onChange={(event) => setSearchCategory(event.target.value)}
+                className="border-l border-zinc-200 bg-white px-3 text-[13px] text-zinc-600 outline-none"
+                aria-label={searchCategoryLabel}
+              >
+                <option value="all">{searchCategoryLabel}</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.slug}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
               <button
-                type="button"
+                type="submit"
                 aria-label="Search products"
                 className="inline-flex w-12 items-center justify-center bg-zinc-800 text-white"
               >
                 <Search size={17} />
               </button>
-            </div>
+            </form>
           </div>
-          <button className="ml-auto inline-flex h-8 w-8 items-center justify-center text-zinc-800 md:hidden" aria-label="Search">
+          <button
+            className="ml-auto inline-flex h-8 w-8 items-center justify-center text-zinc-800 md:hidden"
+            aria-label="Search"
+            onClick={runSearch}
+          >
             <Search size={18} />
           </button>
           {navActions.showCompare ? (

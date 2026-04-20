@@ -49,8 +49,10 @@ type ProductApiItem = {
 };
 
 type CategoryOption = {
+  _id?: string;
   slug: string;
   name: string;
+  image?: string;
   isActive?: boolean;
 };
 
@@ -105,7 +107,7 @@ const SECTION_SHORT: Record<SectionType, string> = {
 
 const SECTION_HINT: Record<SectionType, string> = {
   announcement_bar: "Controls the live top strip text and visibility.",
-  navbar: "Controls live header store name and navbar background color.",
+  navbar: "Controls live header store name, browser title, favicon, and navbar background color.",
   hero_carousel: "Main hero carousel with slide links/images and optional right-side stack of 3 admin-selected product cards.",
   promo_tiles: "Legacy promo stack. Hero now has its own right-side product stack; use this block only outside Hero row.",
   featured_tabs: "Featured / On Sale / Top Rated tabs with admin-selected database products.",
@@ -248,6 +250,8 @@ function newSection(type: SectionType, categorySlug?: string): SectionRow {
         ...base,
         config: {
           storeName: "",
+          storeTitle: "",
+          favicon: "",
           navbarBg: "#f5c400",
         },
       };
@@ -320,7 +324,7 @@ function summary(section: SectionRow): string {
     case "category_product_row":
       return `${String(c.title || "")} · ${String(c.categorySlug || "")}`.trim() || "—";
     case "navbar":
-      return `${String(c.storeName || "Store name")} · ${String(c.navbarBg || "#f5c400")}`;
+      return `${String(c.storeName || "Store name")} · ${String(c.storeTitle || "Store title")} · ${String(c.navbarBg || "#f5c400")}`;
     case "brand_banner":
       return String(c.desktopImageUrl || c.mobileImageUrl || c.imageUrl || "Image banner");
     case "week_deals": {
@@ -434,7 +438,16 @@ export function HomepageSectionsEditor() {
           new Map(
             (catJson.items ?? [])
               .filter((category) => category.slug && category.name && category.isActive !== false)
-              .map((category) => [category.slug, { slug: category.slug, name: category.name }])
+              .map((category) => [
+                category.slug,
+                {
+                  _id: String(category._id || ""),
+                  slug: category.slug,
+                  name: category.name,
+                  image: String(category.image || "").trim(),
+                  isActive: category.isActive,
+                },
+              ])
           ).values()
         )
       );
@@ -453,6 +466,34 @@ export function HomepageSectionsEditor() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const syncCategoryImage = useCallback(
+    async (slug: string, image: string) => {
+      const category = categories.find((item) => item.slug === slug);
+      if (!category?._id) return { ok: false, error: "Category not found for image sync." };
+
+      try {
+        const res = await fetch(`/api/v1/admin/categories/${category._id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: image.trim() }),
+        });
+        const payload = (await res.json().catch(() => null)) as { item?: CategoryOption; error?: string } | null;
+        if (!res.ok) {
+          return { ok: false, error: payload?.error || "Failed to sync category image." };
+        }
+
+        const updatedImage = String(payload?.item?.image ?? image).trim();
+        setCategories((prev) =>
+          prev.map((item) => (item.slug === slug ? { ...item, image: updatedImage } : item))
+        );
+        return { ok: true };
+      } catch {
+        return { ok: false, error: "Failed to sync category image." };
+      }
+    },
+    [categories]
+  );
 
   const bumpPreview = () => setPreviewKey((k) => k + 1);
 
@@ -703,7 +744,13 @@ export function HomepageSectionsEditor() {
                 <DialogDescription className="text-left text-xs text-slate-700">{SECTION_HINT[editing.type]}</DialogDescription>
               </DialogHeader>
               <p className="font-mono text-[10px] text-slate-400">{editing.id}</p>
-              <SectionConfigForm section={editing} categories={categories} products={products} onChange={patchEditingConfig} />
+              <SectionConfigForm
+                section={editing}
+                categories={categories}
+                products={products}
+                onChange={patchEditingConfig}
+                onSyncCategoryImage={syncCategoryImage}
+              />
               <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-3">
                 <Button type="button" variant="outline" size="sm" className={BTN_OUTLINE_SOLID} onClick={() => setEditingId(null)}>
                   Done
@@ -1655,10 +1702,12 @@ function TopCategoriesGridForm({
   value,
   categories,
   onChange,
+  onSyncCategoryImage,
 }: {
   value: Record<string, unknown>;
-  categories: Array<{ slug: string; name: string }>;
+  categories: CategoryOption[];
   onChange: (partial: Record<string, unknown>) => void;
+  onSyncCategoryImage: (slug: string, image: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const selectedCategorySlugs = Array.isArray(value.categorySlugs)
     ? Array.from(
@@ -1669,32 +1718,23 @@ function TopCategoriesGridForm({
         )
       ).slice(0, 10)
     : [];
-  const imageBySlug = value.categoryImages && typeof value.categoryImages === "object" && !Array.isArray(value.categoryImages)
-    ? Object.fromEntries(
-        Object.entries(value.categoryImages as Record<string, unknown>)
-          .map(([slug, image]) => [slug, String(image || "").trim()])
-          .filter(([slug]) => Boolean(slug))
-      )
-    : {};
   const [pendingCategorySlug, setPendingCategorySlug] = useState("");
   const [uploadingSlug, setUploadingSlug] = useState<string | null>(null);
+  const [savingSlug, setSavingSlug] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [imageDraftBySlug, setImageDraftBySlug] = useState<Record<string, string>>({});
   const selectedSet = new Set(selectedCategorySlugs);
   const addableCategories = categories.filter((category) => !selectedSet.has(category.slug));
+  const categoryImageBySlug = useMemo(
+    () => new Map(categories.map((category) => [category.slug, String(category.image ?? "").trim()])),
+    [categories]
+  );
 
-  const patchConfig = (
-    nextSlugs: string[],
-    nextImages: Record<string, string>
-  ) => {
+  const patchConfig = (nextSlugs: string[]) => {
     const normalizedSlugs = Array.from(new Set(nextSlugs.map((slug) => slug.trim()).filter(Boolean))).slice(0, 10);
-    const normalizedImages = Object.fromEntries(
-      Object.entries(nextImages)
-        .map(([slug, image]) => [slug.trim(), String(image || "").trim()])
-        .filter(([slug, image]) => normalizedSlugs.includes(slug) && Boolean(image))
-    );
     onChange({
       categorySlugs: normalizedSlugs,
-      categoryImages: normalizedImages,
+      categoryImages: {},
     });
   };
 
@@ -1710,36 +1750,42 @@ function TopCategoriesGridForm({
 
   const patchAt = (index: number, nextSlug: string) => {
     if (!nextSlug) return;
-    const previousSlug = selectedCategorySlugs[index];
-    const nextSlugs = Array.from(
-      new Set(selectedCategorySlugs.map((slug, currentIndex) => (currentIndex === index ? nextSlug : slug)))
-    ).slice(0, 10);
-    const nextImages = { ...imageBySlug };
-    if (previousSlug && previousSlug !== nextSlug && nextImages[previousSlug] && !nextImages[nextSlug]) {
-      nextImages[nextSlug] = nextImages[previousSlug] || "";
-    }
-    if (previousSlug && previousSlug !== nextSlug) {
-      delete nextImages[previousSlug];
-    }
-    patchConfig(nextSlugs, nextImages);
+    const nextSlugs = selectedCategorySlugs.map((slug, currentIndex) => (currentIndex === index ? nextSlug : slug));
+    patchConfig(nextSlugs);
   };
 
   const removeAt = (index: number) => {
-    const removedSlug = selectedCategorySlugs[index];
     const nextSlugs = selectedCategorySlugs.filter((_, currentIndex) => currentIndex !== index);
-    const nextImages = { ...imageBySlug };
-    if (removedSlug) delete nextImages[removedSlug];
-    patchConfig(nextSlugs, nextImages);
+    patchConfig(nextSlugs);
   };
 
   const addCategory = () => {
     if (!pendingCategorySlug || selectedCategorySlugs.length >= 10) return;
-    patchConfig([...selectedCategorySlugs, pendingCategorySlug].slice(0, 10), imageBySlug);
+    patchConfig([...selectedCategorySlugs, pendingCategorySlug].slice(0, 10));
   };
 
-  const patchImageForSlug = (slug: string, image: string) => {
-    const nextImages = { ...imageBySlug, [slug]: image };
-    patchConfig(selectedCategorySlugs, nextImages);
+  const patchImageDraftForSlug = (slug: string, image: string) => {
+    setImageDraftBySlug((prev) => ({ ...prev, [slug]: image }));
+  };
+
+  const getImageForSlug = (slug: string) => String(imageDraftBySlug[slug] ?? categoryImageBySlug.get(slug) ?? "").trim();
+
+  const syncImageForSlug = async (slug: string) => {
+    setUploadError(null);
+    setSavingSlug(slug);
+    try {
+      const image = getImageForSlug(slug);
+      const result = await onSyncCategoryImage(slug, image);
+      if (!result.ok) {
+        setUploadError(result.error || "Failed to sync category image");
+        return;
+      }
+      setImageDraftBySlug((prev) => ({ ...prev, [slug]: image }));
+    } catch {
+      setUploadError("Failed to sync category image");
+    } finally {
+      setSavingSlug((current) => (current === slug ? null : current));
+    }
   };
 
   const uploadCategoryImage = async (slug: string, file: File) => {
@@ -1751,7 +1797,11 @@ function TopCategoriesGridForm({
         setUploadError(uploaded.error || "Image upload failed");
         return;
       }
-      patchImageForSlug(slug, uploaded.imageUrl);
+      setImageDraftBySlug((prev) => ({ ...prev, [slug]: uploaded.imageUrl! }));
+      const result = await onSyncCategoryImage(slug, uploaded.imageUrl);
+      if (!result.ok) {
+        setUploadError(result.error || "Failed to sync category image");
+      }
     } catch {
       setUploadError("Image upload failed");
     } finally {
@@ -1796,13 +1846,16 @@ function TopCategoriesGridForm({
       ) : null}
 
       <p className="text-[11px] text-slate-500">Selected: {selectedCategorySlugs.length}/10 categories.</p>
+      <p className="text-[11px] text-slate-500">Image updates here sync with Categories CMS.</p>
 
       {selectedCategorySlugs.map((slug, index) => {
         const category = categories.find((item) => item.slug === slug);
         const optionsForSlot = category
           ? [category, ...categories.filter((item) => item.slug !== category.slug)]
           : [{ slug, name: `Unknown (${slug})` }, ...categories];
-        const imageUrl = String(imageBySlug[slug] || "").trim();
+        const imageUrl = getImageForSlug(slug);
+        const isSyncing = savingSlug === slug;
+        const isUploading = uploadingSlug === slug;
         return (
           <div key={`top-category-${index}`} className="space-y-2 rounded-md border border-slate-200 bg-white p-2">
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
@@ -1830,28 +1883,38 @@ function TopCategoriesGridForm({
             <input
               className={cn(FORM_CONTROL, "text-xs")}
               value={imageUrl}
-              onChange={(event) => patchImageForSlug(slug, event.target.value)}
+              onChange={(event) => patchImageDraftForSlug(slug, event.target.value)}
               placeholder="Image URL / URI (https://...)"
             />
             <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className={cn("h-8 px-2 text-xs", BTN_OUTLINE_SOLID)}
+                disabled={isSyncing || isUploading}
+                onClick={() => void syncImageForSlug(slug)}
+              >
+                {isSyncing ? "Saving..." : "Save image"}
+              </Button>
               <label
                 className={cn(
                   "inline-flex h-8 cursor-pointer items-center rounded-md border border-slate-300 bg-white px-3 text-xs font-medium text-zinc-900 hover:bg-slate-100",
-                  uploadingSlug === slug ? "cursor-not-allowed opacity-70" : ""
+                  isUploading || isSyncing ? "cursor-not-allowed opacity-70" : ""
                 )}
               >
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  disabled={uploadingSlug === slug}
+                  disabled={isUploading || isSyncing}
                   onChange={(event) => {
                     const file = event.currentTarget.files?.[0];
                     if (file) void uploadCategoryImage(slug, file);
                     event.currentTarget.value = "";
                   }}
                 />
-                {uploadingSlug === slug ? "Uploading..." : "Upload image"}
+                {isUploading ? "Uploading..." : "Upload image"}
               </label>
               {imageUrl ? (
                 <a href={imageUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-blue-700 hover:underline">
@@ -2630,15 +2693,19 @@ function SectionConfigForm({
   categories,
   products,
   onChange,
+  onSyncCategoryImage,
 }: {
   section: SectionRow;
-  categories: { slug: string; name: string }[];
+  categories: CategoryOption[];
   products: ProductOption[];
   onChange: (partial: Record<string, unknown>) => void;
+  onSyncCategoryImage: (slug: string, image: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const c = section.config;
   const [categoryPromoUploading, setCategoryPromoUploading] = useState(false);
   const [categoryPromoUploadError, setCategoryPromoUploadError] = useState<string | null>(null);
+  const [navbarFaviconUploading, setNavbarFaviconUploading] = useState(false);
+  const [navbarFaviconUploadError, setNavbarFaviconUploadError] = useState<string | null>(null);
   const categoryAnchorLinks = (() => {
     const links = Array.isArray(c.anchorLinks)
       ? c.anchorLinks.map((item) => {
@@ -2688,6 +2755,23 @@ function SectionConfigForm({
       anchorTitle: firstComplete?.title || "",
       anchorHref: firstComplete?.href || "",
     });
+  };
+
+  const uploadNavbarFavicon = async (file: File) => {
+    setNavbarFaviconUploadError(null);
+    setNavbarFaviconUploading(true);
+    try {
+      const uploaded = await uploadCmsImage(file);
+      if (!uploaded.imageUrl) {
+        setNavbarFaviconUploadError(uploaded.error || "Favicon upload failed");
+        return;
+      }
+      onChange({ favicon: uploaded.imageUrl });
+    } catch {
+      setNavbarFaviconUploadError("Favicon upload failed");
+    } finally {
+      setNavbarFaviconUploading(false);
+    }
   };
 
   const text = (key: string, label: string, placeholder?: string) => (
@@ -2749,6 +2833,37 @@ function SectionConfigForm({
       return (
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           {text("storeName", "Store name in navbar")}
+          {text("storeTitle", "Store title (browser tab title)")}
+          <div className="space-y-2 md:col-span-2">
+            {text("favicon", "Favicon URL / URI")}
+            <div className="flex flex-wrap items-center gap-2">
+              <label
+                className={cn(
+                  "inline-flex h-8 cursor-pointer items-center rounded-md border border-slate-300 bg-white px-3 text-xs font-medium text-zinc-900 hover:bg-slate-100",
+                  navbarFaviconUploading ? "cursor-not-allowed opacity-70" : ""
+                )}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={navbarFaviconUploading}
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) void uploadNavbarFavicon(file);
+                    event.currentTarget.value = "";
+                  }}
+                />
+                {navbarFaviconUploading ? "Uploading..." : "Upload favicon"}
+              </label>
+              {String(c.favicon ?? "").trim() ? (
+                <a href={String(c.favicon)} target="_blank" rel="noreferrer" className="text-xs font-medium text-blue-700 hover:underline">
+                  Open favicon
+                </a>
+              ) : null}
+            </div>
+            {navbarFaviconUploadError ? <p className="text-xs font-medium text-red-600">{navbarFaviconUploadError}</p> : null}
+          </div>
           <label className="block space-y-1">
             <span className="text-xs font-medium text-slate-700">Navbar background color</span>
             <div className="flex items-center gap-2">
@@ -2767,7 +2882,7 @@ function SectionConfigForm({
             </div>
           </label>
           <p className="text-xs text-slate-500 md:col-span-2">
-            Saves to global header branding and live navbar background color.
+            Saves to live header branding, browser title, favicon, and navbar background color.
           </p>
         </div>
       );
@@ -2916,6 +3031,7 @@ function SectionConfigForm({
             value={c}
             categories={categories}
             onChange={onChange}
+            onSyncCategoryImage={onSyncCategoryImage}
           />
         </div>
       );

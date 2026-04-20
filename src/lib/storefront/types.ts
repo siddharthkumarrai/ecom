@@ -31,6 +31,8 @@ export type NavbarSectionConfig = BaseSectionConfig<
   "navbar",
   {
     storeName?: string;
+    storeTitle?: string;
+    favicon?: string;
     navbarBg?: string;
   }
 >;
