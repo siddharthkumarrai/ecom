@@ -60,7 +60,8 @@ export async function FeaturedTabsSection({ section, sectionData, siteConfig }: 
   const hasAnyConfiguredProducts = normalizedTabs.some((tab) => tab.productIds.length > 0);
 
   const selectedProductIds = Array.from(new Set(normalizedTabs.flatMap((tab) => tab.productIds).filter(Boolean)));
-  const selectedProducts = selectedProductIds.length ? (await getProductsByIdsOrMock(selectedProductIds)).products : [];
+  const selectedProductsResult = selectedProductIds.length ? await getProductsByIdsOrMock(selectedProductIds) : null;
+  const selectedProducts = selectedProductsResult?.source === "db" ? selectedProductsResult.products : [];
   const selectedProductById = new Map(selectedProducts.map((product) => [product.id, product]));
   const sectionDataTabById = new Map(sectionData.featuredTabs.map((tab) => [tab.id, tab]));
 

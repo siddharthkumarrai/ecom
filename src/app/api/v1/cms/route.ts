@@ -344,7 +344,7 @@ export async function PATCH(req: Request) {
   const updated = await SiteConfig.findOneAndUpdate(
     { key: "main" },
     { $set: parsed.data },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   ).lean();
 
   return json({ config: updated });

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ProductMiniCard } from "@/components/store/sections/blocks/ProductMiniCard";
+import { NoProductsMessage } from "@/components/store/sections/blocks/NoProductsMessage";
 import { SectionHeader } from "@/components/store/sections/blocks/SectionHeader";
 import type { SectionRenderProps } from "@/components/store/sections/registry";
 import { getProductsByIdsOrMock } from "@/lib/store/data";
@@ -77,8 +78,9 @@ export async function TripleProductListsSection({ section, sectionData }: Sectio
   const tabs = hasConfiguredProducts
     ? await Promise.all(
         configuredTabs.map(async (tab) => {
-          const configuredProducts = tab.productIds.length
-            ? uniqueProductsById((await getProductsByIdsOrMock(tab.productIds)).products).slice(0, 3)
+          const configuredProductsResult = tab.productIds.length ? await getProductsByIdsOrMock(tab.productIds) : null;
+          const configuredProducts = configuredProductsResult?.source === "db"
+            ? uniqueProductsById(configuredProductsResult.products).slice(0, 3)
             : [];
           const fallbackProducts = uniqueProductsById(fallbackById.get(tab.id)?.products ?? []).slice(0, 3);
           return {
@@ -90,10 +92,16 @@ export async function TripleProductListsSection({ section, sectionData }: Sectio
       )
     : fallbackTabs;
   const nonEmptyTabs = tabs.filter((tab) => tab.products.length > 0);
-  if (!nonEmptyTabs.length) return null;
-
   const sideBannerImageUrl = String(section.config.sideBannerImageUrl || "/hero-placeholder.svg");
   const sideBannerHref = String(section.config.sideBannerHref || "/");
+
+  if (!nonEmptyTabs.length) {
+    return (
+      <section className="rounded-md border border-zinc-200 bg-white p-3">
+        <NoProductsMessage className="min-h-[260px]" />
+      </section>
+    );
+  }
 
   return (
     <section className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">

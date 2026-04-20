@@ -101,7 +101,7 @@ export async function PATCH(req: Request, { params }: Params) {
     updatePayload.basePrice = parsed.data.sellingPrice;
     delete updatePayload.sellingPrice;
   }
-  const item = await Product.findByIdAndUpdate(id, { $set: updatePayload }, { new: true }).lean();
+  const item = await Product.findByIdAndUpdate(id, { $set: updatePayload }, { returnDocument: "after" }).lean();
   if (!item) return error("Product not found", 404);
   const prevImages = existing.images ?? [];
   const nextImages = Array.isArray((item as { images?: string[] }).images) ? (item as { images?: string[] }).images ?? [] : [];
@@ -126,4 +126,3 @@ export async function DELETE(_req: Request, { params }: Params) {
   }
   return json({ ok: true });
 }
-

@@ -35,7 +35,7 @@ export async function PATCH(req: Request, { params }: Params) {
     } else {
       delete updateData.image;
     }
-    const item = await Category.findByIdAndUpdate(id, { $set: updateData }, { new: true }).lean();
+    const item = await Category.findByIdAndUpdate(id, { $set: updateData }, { returnDocument: "after" }).lean();
     if (!item) return error("Category not found", 404);
     return json({ item });
   } catch (e) {

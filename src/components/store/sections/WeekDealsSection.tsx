@@ -1,4 +1,5 @@
 import { CountdownTimer } from "@/components/store/sections/blocks/CountdownTimer";
+import { NoProductsMessage } from "@/components/store/sections/blocks/NoProductsMessage";
 import { HomeProductTile } from "@/components/store/home/HomeProductTile";
 import type { SectionRenderProps } from "@/components/store/sections/registry";
 import { getProductsByIdsOrMock } from "@/lib/store/data";
@@ -27,14 +28,31 @@ export async function WeekDealsSection({ section, siteConfig, sectionData }: Sec
       ? siteConfig.homepage.weekDeals.productIds.map((id) => String(id).trim()).filter(Boolean)
     : [];
   const productIds = dedupeStrings(rawProductIds);
-  const selectedProducts = productIds.length ? (await getProductsByIdsOrMock(productIds)).products : [];
+  const selectedProductsResult = productIds.length ? await getProductsByIdsOrMock(productIds) : null;
+  const selectedProducts = selectedProductsResult?.source === "db" ? selectedProductsResult.products : [];
   const selectedById = new Map(selectedProducts.map((product) => [product.id, product]));
   const configuredProducts = productIds
     .map((productId) => selectedById.get(productId))
     .filter((product): product is Product => Boolean(product));
   const fallbackProducts = dedupeProductsById(sectionData.weekDealsProducts);
   const products = dedupeProductsById(configuredProducts.length ? configuredProducts : fallbackProducts).slice(0, 20);
-  if (!products.length) return null;
+  if (!products.length) {
+    return (
+      <section className="grid min-w-0 gap-3 border border-zinc-200 bg-[#f5f5f5] p-2 sm:p-3 md:p-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <aside className="bg-transparent p-1.5 sm:p-2">
+          <p className="text-[22px] leading-7 font-medium text-zinc-800 sm:text-[28px] sm:leading-8 md:text-[34px] md:leading-[38px]">{title}</p>
+          <div className="mt-2 text-5xl leading-none text-zinc-700 sm:mt-3 sm:text-6xl md:mt-4 md:text-7xl">%</div>
+          <p className="mt-2 text-xs text-zinc-700 sm:mt-3 sm:text-sm">{subtitle}</p>
+          <div className="mt-3">
+            <CountdownTimer endsAt={endsAt} />
+          </div>
+        </aside>
+        <div className="min-w-0 overflow-hidden border border-zinc-200 bg-white">
+          <NoProductsMessage className="min-h-[220px]" />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="grid min-w-0 gap-3 border border-zinc-200 bg-[#f5f5f5] p-2 sm:p-3 md:p-4 lg:grid-cols-[220px_minmax(0,1fr)]">

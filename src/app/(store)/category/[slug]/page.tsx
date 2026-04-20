@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { CategoryProductsCatalog } from "@/components/store/category/CategoryProductsCatalog";
 import { StoreBottomSections } from "@/components/store/layout/StoreBottomSections";
@@ -25,7 +26,9 @@ export default async function CategoryPage({ params }: Props) {
         actionButtonBg={config.appearance.productActionButtonBg}
         actionButtonHoverBg={config.appearance.productActionButtonHoverBg}
       />
-      <StoreBottomSections />
+      <Suspense fallback={<div className="h-20 animate-pulse rounded-2xl border border-zinc-200 bg-white/80" />}>
+        <StoreBottomSections />
+      </Suspense>
     </main>
   );
 }

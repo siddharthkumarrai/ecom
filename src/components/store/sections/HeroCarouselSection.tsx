@@ -3,23 +3,7 @@ import type { SectionRenderProps } from "@/components/store/sections/registry";
 import { getProductsByIdsOrMock } from "@/lib/store/data";
 
 export async function HeroCarouselSection({ section, siteConfig }: SectionRenderProps) {
-  const sectionTitle = String(section.config.title || siteConfig.homepage.hero.title);
-  const sectionDescription = String(
-    section.config.description || siteConfig.homepage.hero.description
-  );
   const sectionEyebrow = String(section.config.eyebrow || siteConfig.homepage.hero.eyebrow);
-  const primaryCtaLabel = String(
-    section.config.primaryCtaLabel || siteConfig.homepage.hero.primaryCtaLabel
-  );
-  const primaryCtaHref = String(
-    section.config.primaryCtaHref || siteConfig.homepage.hero.primaryCtaHref
-  );
-  const secondaryCtaLabel = String(
-    section.config.secondaryCtaLabel || siteConfig.homepage.hero.secondaryCtaLabel
-  );
-  const secondaryCtaHref = String(
-    section.config.secondaryCtaHref || siteConfig.homepage.hero.secondaryCtaHref
-  );
   const slidesFromConfig = Array.isArray(section.config.slides)
     ? section.config.slides
         .map((item) => {
@@ -56,7 +40,8 @@ export async function HeroCarouselSection({ section, siteConfig }: SectionRender
         .filter(Boolean)
     )
   );
-  const selectedProducts = sideCardProductIds.length ? (await getProductsByIdsOrMock(sideCardProductIds)).products : [];
+  const selectedProductsResult = sideCardProductIds.length ? await getProductsByIdsOrMock(sideCardProductIds) : null;
+  const selectedProducts = selectedProductsResult?.source === "db" ? selectedProductsResult.products : [];
   const productById = new Map(selectedProducts.map((product) => [product.id, product]));
   const resolvedSideCards = sideCardsFromConfig.length
     ? sideCardsFromConfig.map((card) => {
@@ -78,12 +63,6 @@ export async function HeroCarouselSection({ section, siteConfig }: SectionRender
     <div className="[&>section]:mt-0">
       <HeroBanner
         eyebrow={sectionEyebrow}
-        title={sectionTitle}
-        description={sectionDescription}
-        primaryCtaLabel={primaryCtaLabel}
-        primaryCtaHref={primaryCtaHref}
-        secondaryCtaLabel={secondaryCtaLabel}
-        secondaryCtaHref={secondaryCtaHref}
         slides={slides}
         sideCards={resolvedSideCards}
         autoplayMs={autoplayMs}

@@ -104,7 +104,7 @@ export async function POST(req: Request) {
           : order.trackingEvents ?? [],
       },
     },
-    { new: true }
+    { returnDocument: "after" }
   ).lean();
   return json({ ok: true, item: updated });
 }
@@ -143,7 +143,7 @@ export async function PATCH(req: Request) {
           ].slice(0, 20),
         },
       },
-      { new: true }
+      { returnDocument: "after" }
     ).lean();
     return json({ ok: true, item: updated });
   }
@@ -212,7 +212,7 @@ export async function PATCH(req: Request) {
         })),
       },
     },
-    { new: true }
+    { returnDocument: "after" }
   ).lean();
 
   return json({ ok: true, item: updated });

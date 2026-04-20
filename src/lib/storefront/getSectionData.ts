@@ -8,7 +8,8 @@ import type { SiteConfig } from "@/lib/store/types";
 import type { FeaturedTabData, SectionDataMap } from "@/lib/storefront/types";
 
 export async function getSectionData(config: SiteConfig): Promise<SectionDataMap> {
-  const { products: allHomeProducts } = await getHomeProductsOrMock(80);
+  const homeProductsResult = await getHomeProductsOrMock(80);
+  const allHomeProducts = homeProductsResult.source === "db" ? homeProductsResult.products : [];
   const onSaleProducts = allHomeProducts.filter(
     (product) => typeof product.costPrice === "number" && product.costPrice > product.price
   );
@@ -23,7 +24,8 @@ export async function getSectionData(config: SiteConfig): Promise<SectionDataMap
   const featuredTabs = await Promise.all(
     (config.homepage.featuredTabs ?? []).map(async (tab): Promise<FeaturedTabData> => {
       const tabIds = Array.isArray(tab.productIds) ? tab.productIds : [];
-      const cmsProducts = tabIds.length ? (await getProductsByIdsOrMock(tabIds)).products : [];
+      const cmsProductsResult = tabIds.length ? await getProductsByIdsOrMock(tabIds) : null;
+      const cmsProducts = cmsProductsResult?.source === "db" ? cmsProductsResult.products : [];
       const normalized = `${tab.id} ${tab.title}`.toLowerCase();
       const fallbackProducts = normalized.includes("sale")
         ? onSaleProducts.slice(0, 10)
@@ -40,15 +42,18 @@ export async function getSectionData(config: SiteConfig): Promise<SectionDataMap
   );
 
   const weekDealsFromCms = await getProductsByIdsOrMock(config.homepage.weekDeals.productIds ?? []);
-  const weekDealsProducts = weekDealsFromCms.products.length
-    ? weekDealsFromCms.products
+  const weekDealsFromCmsProducts = weekDealsFromCms.source === "db" ? weekDealsFromCms.products : [];
+  const weekDealsProducts = weekDealsFromCmsProducts.length
+    ? weekDealsFromCmsProducts
     : (onSaleProducts.length ? onSaleProducts : allHomeProducts).slice(0, 10);
 
   const topCategoriesFromCms = await getCategoriesBySlugsOrMock(config.homepage.topCategories.categorySlugs ?? []);
   const fallbackTopCategories = await getTopCategoriesOrMock();
-  const topCategories = topCategoriesFromCms.categories.length
-    ? topCategoriesFromCms.categories
-    : fallbackTopCategories.categories.slice(0, 10);
+  const topCategoriesFromDb = topCategoriesFromCms.source === "db" ? topCategoriesFromCms.categories : [];
+  const fallbackTopCategoriesFromDb = fallbackTopCategories.source === "db" ? fallbackTopCategories.categories : [];
+  const topCategories = topCategoriesFromDb.length
+    ? topCategoriesFromDb
+    : fallbackTopCategoriesFromDb.slice(0, 10);
 
   return {
     featuredTabs,

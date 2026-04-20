@@ -81,17 +81,6 @@ export function buildDefaultHomepageSections(config: SiteConfig, autoCategorySec
       },
     },
     {
-      id: "brand-banner-everstar",
-      type: "brand_banner",
-      order: 40,
-      enabled: true,
-      config: {
-        href: "/brands/everstar",
-        desktopImageUrl: "https://lumenskart.in/public/uploads/all/0nykr2ZauQA6nblRp3iOiivYHW1mWsHo6UJVUtVe.webp",
-        mobileImageUrl: "https://lumenskart.in/public/uploads/all/0nykr2ZauQA6nblRp3iOiivYHW1mWsHo6UJVUtVe.webp",
-      },
-    },
-    {
       id: "week-deals",
       type: "week_deals",
       order: 50,
@@ -199,12 +188,35 @@ function appendMissingAutoCategoryRows(
 }
 
 export async function getHomepageConfig() {
-  const [{ config }, categorySectionsResult] = await Promise.all([
+  const [siteConfigResult, categorySectionsResult] = await Promise.all([
     getSiteConfigOrMock(),
     getHomepageCategorySectionsOrMock(),
   ]);
-  const typedConfig = config as SiteConfig;
-  const homepage = typedConfig.homepage ?? {};
+  const typedConfig = siteConfigResult.config as SiteConfig;
+  const sanitizedConfig: SiteConfig = siteConfigResult.source === "db"
+    ? typedConfig
+    : {
+        ...typedConfig,
+        homepage: {
+          ...typedConfig.homepage,
+          sections: [],
+          heroCarousel: {
+            autoplayMs: typedConfig.homepage?.heroCarousel?.autoplayMs ?? 4200,
+            slides: [],
+            sideCards: [],
+          },
+          featuredTabs: [],
+          weekDeals: {
+            ...typedConfig.homepage.weekDeals,
+            productIds: [],
+          },
+          topCategories: {
+            ...typedConfig.homepage.topCategories,
+            categorySlugs: [],
+          },
+        },
+      };
+  const homepage = sanitizedConfig.homepage ?? {};
   const autoCategorySections: AutoCategorySection[] = (categorySectionsResult.sections ?? []).map((section) => ({
     categorySlug: String(section.categorySlug || ""),
     title: String(section.title || section.categorySlug || ""),
@@ -220,24 +232,24 @@ export async function getHomepageConfig() {
     : [];
 
   if (sectionsFromCms.length) {
-    const persistedSections = removeLegacyDuplicateNewsletterSection([...sectionsFromCms], typedConfig)
+    const persistedSections = removeLegacyDuplicateNewsletterSection([...sectionsFromCms], sanitizedConfig)
       .sort((a, b) => a.order - b.order);
     const sections = appendMissingAutoCategoryRows(persistedSections, autoCategorySections)
       .filter((section) => section.enabled !== false)
       .sort((a, b) => a.order - b.order);
     return {
-      config: typedConfig,
+      config: sanitizedConfig,
       sections,
     };
   }
 
-  const baseSections = buildDefaultHomepageSections(typedConfig, autoCategorySections);
+  const baseSections = buildDefaultHomepageSections(sanitizedConfig, autoCategorySections);
   const sections = appendMissingAutoCategoryRows(baseSections, autoCategorySections)
     .filter((section) => section.enabled !== false)
     .sort((a, b) => a.order - b.order);
 
   return {
-    config: typedConfig,
+    config: sanitizedConfig,
     sections,
   };
 }

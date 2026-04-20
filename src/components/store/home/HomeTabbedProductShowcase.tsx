@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { HomeProductTile } from "@/components/store/home/HomeProductTile";
+import { NoProductsMessage } from "@/components/store/sections/blocks/NoProductsMessage";
 import type { Product } from "@/lib/store/types";
 
 type ProductTab = {
@@ -15,7 +16,13 @@ export function HomeTabbedProductShowcase({ tabs }: { tabs: ProductTab[] }) {
   const [activeTabId, setActiveTabId] = useState(usableTabs[0]?.id ?? "");
   const activeTab = usableTabs.find((tab) => tab.id === activeTabId) ?? usableTabs[0];
 
-  if (!activeTab) return null;
+  if (!activeTab) {
+    return (
+      <section className="border border-zinc-200 bg-white">
+        <NoProductsMessage className="min-h-[260px]" />
+      </section>
+    );
+  }
 
   return (
     <section className="border border-zinc-200 bg-white">

@@ -1,8 +1,9 @@
 import { AccountSidebar } from "@/components/store/shared/AccountSidebar";
-import { PostContentSections } from "@/components/store/shared/PostContentSections";
+import { StoreBottomSections } from "@/components/store/layout/StoreBottomSections";
 import { getCurrentUserRole, isAdminRole } from "@/lib/auth/roles";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { Suspense } from "react";
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -16,8 +17,9 @@ export default async function AccountLayout({ children }: { children: React.Reac
         <AccountSidebar />
         <div>{children}</div>
       </div>
-      <PostContentSections />
+      <Suspense fallback={<div className="mt-6 h-24 animate-pulse rounded-2xl border border-zinc-200 bg-white/80" />}>
+        <StoreBottomSections className="mt-6" />
+      </Suspense>
     </>
   );
 }
-

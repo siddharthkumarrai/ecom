@@ -24,7 +24,8 @@ export async function PromoTilesSection({ section, siteConfig }: SectionRenderPr
         .filter(Boolean)
     )
   );
-  const selectedProducts = productIds.length ? (await getProductsByIdsOrMock(productIds)).products : [];
+  const selectedProductsResult = productIds.length ? await getProductsByIdsOrMock(productIds) : null;
+  const selectedProducts = selectedProductsResult?.source === "db" ? selectedProductsResult.products : [];
   const productById = new Map(selectedProducts.map((product) => [product.id, product]));
 
   return (

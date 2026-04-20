@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 interface FooterProps {
   columns: Array<{ title: string; links: Array<{ label: string; href: string }> }>;
@@ -99,7 +100,13 @@ export function Footer({
       <div className="grid w-full gap-8 px-[var(--content-px-mobile)] py-8 md:grid-cols-[1.1fr_1.2fr_0.9fr] md:px-[var(--content-px-desktop)]">
         <div>
           {hasLogo ? (
-            <img src={resolvedLogoUrl} alt={resolvedStoreName} className="h-12 w-auto max-w-[220px] object-contain" />
+            <Image
+              src={resolvedLogoUrl}
+              alt={resolvedStoreName}
+              width={220}
+              height={48}
+              className="h-12 w-auto max-w-[220px] object-contain"
+            />
           ) : (
             <h3 className="text-5xl font-bold italic lowercase tracking-tight text-zinc-900">{resolvedStoreName}</h3>
           )}
@@ -128,7 +135,13 @@ export function Footer({
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 text-zinc-500 transition hover:border-zinc-500 hover:text-zinc-700"
               >
                 {item.logoUrl ? (
-                  <img src={item.logoUrl} alt={item.platform || "social"} className="h-4 w-4 object-contain" />
+                  <Image
+                    src={item.logoUrl}
+                    alt={item.platform || "social"}
+                    width={16}
+                    height={16}
+                    className="h-4 w-4 object-contain"
+                  />
                 ) : (
                   <span className="text-[10px] font-semibold uppercase">{renderSocialIcon(item.platform)}</span>
                 )}

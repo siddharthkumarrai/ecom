@@ -12,10 +12,22 @@ export function BrandBannerSection({ section }: SectionRenderProps) {
   return (
     <Link href={href} className="relative block h-[84px] overflow-hidden rounded-md border border-zinc-200 bg-zinc-100 sm:h-[92px] lg:h-[120px]">
       <div className="relative h-full w-full lg:hidden">
-        <Image src={mobileImageUrl} alt={altText} fill sizes="100vw" className="object-cover object-center" />
+        <Image
+          src={mobileImageUrl}
+          alt={altText}
+          fill
+          sizes="(max-width: 640px) 96vw, (max-width: 1024px) 94vw, 92vw"
+          className="object-cover object-center"
+        />
       </div>
       <div className="relative hidden h-full w-full lg:block">
-        <Image src={desktopImageUrl} alt={altText} fill sizes="(max-width: 1280px) 100vw, 1200px" className="object-cover object-center" />
+        <Image
+          src={desktopImageUrl}
+          alt={altText}
+          fill
+          sizes="(max-width: 1280px) 92vw, 1200px"
+          className="object-cover object-center"
+        />
       </div>
     </Link>
   );

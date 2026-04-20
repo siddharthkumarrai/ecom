@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/lib/store/types";
 import { HomeProductTile } from "@/components/store/home/HomeProductTile";
+import { NoProductsMessage } from "@/components/store/sections/blocks/NoProductsMessage";
 
 export function HomeCategorySection({
   title,
@@ -67,11 +68,17 @@ export function HomeCategorySection({
             ) : null}
           </div>
         </aside>
-        <div className="grid grid-cols-2 gap-2 border border-zinc-200 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
-            <HomeProductTile key={product.id} product={product} />
-          ))}
-        </div>
+        {products.length ? (
+          <div className="grid grid-cols-2 gap-2 border border-zinc-200 md:grid-cols-3 lg:grid-cols-4">
+            {products.map((product) => (
+              <HomeProductTile key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="border border-zinc-200 bg-white">
+            <NoProductsMessage exploreHref={categorySlug ? `/category/${categorySlug}` : "/category/all"} className="min-h-[280px]" />
+          </div>
+        )}
         {hasPromo ? (
           <Link
             href={promoHrefResolved}

@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { RichTextEditor } from "@/components/admin/RichTextEditor";
+
+const RichTextEditor = dynamic(
+  () => import("@/components/admin/RichTextEditor").then((mod) => mod.RichTextEditor),
+  {
+    loading: () => <p className="text-xs text-zinc-400">Loading editor...</p>,
+    ssr: false,
+  },
+);
 
 type Option = { _id: string; name: string };
 type SpecRow = { key: string; value: string };
@@ -370,4 +378,3 @@ export default function NewProductPage() {
     </section>
   );
 }
-

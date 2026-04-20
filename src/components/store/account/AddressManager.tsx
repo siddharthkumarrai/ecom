@@ -14,6 +14,7 @@ type Address = {
   country?: string;
   isDefault?: boolean;
 };
+const MAX_ADDRESSES = 4;
 
 const empty = () => ({
   name: "",
@@ -38,6 +39,7 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
   }, [initialAddresses]);
 
   const defaultId = useMemo(() => addresses.find((a) => a.isDefault)?._id ?? "", [addresses]);
+  const canAddMore = addresses.length < MAX_ADDRESSES;
 
   const refresh = async () => {
     const res = await fetch("/api/v1/account/addresses", { cache: "no-store" });
@@ -46,6 +48,10 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
   };
 
   const addAddress = async () => {
+    if (!canAddMore) {
+      setError(`You can save up to ${MAX_ADDRESSES} addresses only.`);
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -116,6 +122,10 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
             Refresh
           </button>
         </div>
+        <p className="mt-2 text-xs text-zinc-600">
+          Saved addresses: {addresses.length}/{MAX_ADDRESSES}
+        </p>
+        {!canAddMore ? <p className="mt-1 text-xs font-medium text-amber-700">Address limit reached. Delete one address to add a new one.</p> : null}
 
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <label className="space-y-1">
@@ -159,10 +169,10 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
           <button
             type="button"
             onClick={addAddress}
-            disabled={busy}
+            disabled={busy || !canAddMore}
             className="rounded bg-[#f5c400] px-4 py-2 text-xs font-semibold text-zinc-900 hover:bg-[#ffd84d] disabled:opacity-60"
           >
-            {busy ? "Saving..." : "Save Address"}
+            {busy ? "Saving..." : canAddMore ? "Save Address" : "Address limit reached"}
           </button>
         </div>
         {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
@@ -211,4 +221,3 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
     </div>
   );
 }
-

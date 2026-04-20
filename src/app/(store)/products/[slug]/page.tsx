@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getProductBySlugOrMock } from "@/lib/store/data";
@@ -93,7 +94,9 @@ export default async function ProductPage({ params }: Props) {
 
       <RelatedProductsRow products={related} />
 
-      <StoreBottomSections />
+      <Suspense fallback={<div className="h-20 animate-pulse rounded-2xl border border-zinc-200 bg-white/80" />}>
+        <StoreBottomSections />
+      </Suspense>
     </main>
   );
 }

@@ -25,6 +25,7 @@ export function CartClient() {
   const [appliedCoupon, setAppliedCoupon] = useState("");
   const [couponMessage, setCouponMessage] = useState("");
   const [removingProductId, setRemovingProductId] = useState("");
+  const [updatingProductId, setUpdatingProductId] = useState("");
 
   useEffect(() => {
     const run = async () => {
@@ -37,6 +38,7 @@ export function CartClient() {
           setError(json.error ?? "Failed to load cart");
           setData(null);
         } else {
+          setError("");
           setData(json);
           if (appliedCoupon.trim()) {
             if (json.totals?.appliedCouponCode) setCouponMessage(`Coupon applied: ${json.totals.appliedCouponCode}`);
@@ -69,6 +71,7 @@ export function CartClient() {
 
   const removeItem = async (productId: string) => {
     setRemovingProductId(productId);
+    setError("");
     const res = await fetch("/api/v1/cart", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -78,6 +81,28 @@ export function CartClient() {
     setRemovingProductId("");
     if (!res.ok) {
       setError(json.error || "Failed to remove item");
+      return;
+    }
+    setData(json);
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("cart-updated"));
+  };
+
+  const updateQuantity = async (productId: string, quantity: number) => {
+    setUpdatingProductId(productId);
+    setError("");
+    const res = await fetch("/api/v1/cart", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        productId,
+        quantity: Math.max(1, Math.trunc(quantity || 1)),
+        couponCode: appliedCoupon.trim() || undefined,
+      }),
+    });
+    const json = (await res.json().catch(() => ({}))) as CartApiResponse;
+    setUpdatingProductId("");
+    if (!res.ok) {
+      setError(json.error || "Failed to update quantity");
       return;
     }
     setData(json);
@@ -101,11 +126,28 @@ export function CartClient() {
             <tbody>
               {(data?.totals?.products ?? []).map((product) => {
                 const qty = quantityById.get(product.id) ?? 0;
+                const rowBusy = removingProductId === product.id || updatingProductId === product.id;
                 return (
                   <tr key={product.id} className="border-b last:border-0">
                     <td className="py-3">
-                      <div className="inline-flex min-w-16 items-center justify-center rounded border border-zinc-200 bg-zinc-50 px-3 py-1">
-                        {qty}
+                      <div className="inline-flex items-center gap-1 rounded border border-zinc-200 bg-zinc-50 px-1 py-1">
+                        <button
+                          type="button"
+                          disabled={rowBusy || qty <= 1}
+                          onClick={() => updateQuantity(product.id, qty - 1)}
+                          className="h-7 w-7 rounded border border-zinc-300 bg-white text-sm font-semibold text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          -
+                        </button>
+                        <span className="inline-flex min-w-8 items-center justify-center text-sm font-semibold text-zinc-800">{qty}</span>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => updateQuantity(product.id, qty + 1)}
+                          className="h-7 w-7 rounded border border-zinc-300 bg-white text-sm font-semibold text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          +
+                        </button>
                       </div>
                     </td>
                     <td className="py-3">
@@ -120,10 +162,10 @@ export function CartClient() {
                       <button
                         type="button"
                         onClick={() => removeItem(product.id)}
-                        disabled={removingProductId === product.id}
+                        disabled={rowBusy}
                         className="rounded-full bg-rose-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-rose-600 disabled:opacity-60"
                       >
-                        {removingProductId === product.id ? "Removing..." : "Remove"}
+                        {removingProductId === product.id ? "Removing..." : updatingProductId === product.id ? "Updating..." : "Remove"}
                       </button>
                     </td>
                   </tr>
@@ -162,4 +204,3 @@ export function CartClient() {
     </>
   );
 }
-

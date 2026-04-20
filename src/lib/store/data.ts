@@ -780,15 +780,7 @@ function toSimpleConfigFromDb(config: DbSiteConfig) {
                 ctaHref: slide.ctaHref ?? "",
                 imageUrl: slide.imageUrl ?? "",
               }))
-            : [
-                {
-                  title: "Stay With Our Advanced IC Technologies",
-                  subtitle: "Reliable component sourcing for manufacturing scale.",
-                  ctaLabel: "Explore Now",
-                  ctaHref: "/category/all",
-                  imageUrl: "/next.svg",
-                },
-              ],
+            : [],
         sideCards:
           config.homepage?.heroCarousel?.sideCards?.length
             ? config.homepage.heroCarousel.sideCards.map((card) => ({
@@ -798,15 +790,7 @@ function toSimpleConfigFromDb(config: DbSiteConfig) {
                 ctaHref: card.ctaHref ?? "",
                 imageUrl: card.imageUrl ?? "",
               }))
-            : [
-                {
-                  title: "Highest Lumens Per Watt",
-                  subtitle: "LED Series",
-                  ctaLabel: "Shop now",
-                  ctaHref: "/category/led",
-                  imageUrl: "/next.svg",
-                },
-              ],
+            : [],
       },
       featuredTabs:
         config.homepage?.featuredTabs?.length

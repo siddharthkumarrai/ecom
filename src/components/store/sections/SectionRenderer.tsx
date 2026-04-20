@@ -3,6 +3,7 @@ import type { SiteConfig } from "@/lib/store/types";
 import type { HomepageSection } from "@/lib/storefront/types";
 import { sectionRegistry } from "@/components/store/sections/registry";
 import type { ReactElement } from "react";
+import { NoProductsMessage } from "@/components/store/sections/blocks/NoProductsMessage";
 
 export async function SectionRenderer({
   sections,
@@ -13,10 +14,21 @@ export async function SectionRenderer({
 }) {
   const sectionData = await getSectionData(siteConfig);
   const renderedSections: ReactElement[] = [];
+  const hasNoProducts = sectionData.allHomeProducts.length === 0;
+  const productDrivenSectionTypes = new Set<HomepageSection["type"]>([
+    "featured_tabs",
+    "week_deals",
+    "category_product_row",
+    "triple_product_lists",
+  ]);
 
   for (let index = 0; index < sections.length; index += 1) {
     const section = sections[index];
     const nextSection = sections[index + 1];
+
+    if (hasNoProducts && productDrivenSectionTypes.has(section.type)) {
+      continue;
+    }
 
     // Hero owns the full above-the-fold row (slider + right stack).
     // If a legacy promo_tiles section follows hero, skip it to avoid duplicates.
@@ -63,6 +75,14 @@ export async function SectionRenderer({
         siteConfig={siteConfig}
         sectionData={sectionData}
       />
+    );
+  }
+
+  if (hasNoProducts) {
+    renderedSections.push(
+      <section key="home-no-products" className="border border-zinc-200 bg-white">
+        <NoProductsMessage className="min-h-[220px] md:min-h-[300px]" />
+      </section>
     );
   }
 

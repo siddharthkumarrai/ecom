@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { getSiteConfigOrMock } from "@/lib/store/data";
 import { requireUser } from "@/lib/auth/requireUser";
 import { ClerkSignOutButton } from "@/components/store/shared/ClerkSignOutButton";
+import { AccountSidebarNav } from "@/components/store/shared/AccountSidebarNav";
 
 export async function AccountSidebar() {
   const [{ config }, { user, clerkUserId }] = await Promise.all([getSiteConfigOrMock(), requireUser()]);
@@ -19,13 +19,7 @@ export async function AccountSidebar() {
       <div className="mx-auto h-20 w-20 rounded-full bg-zinc-200" />
       <p className="mt-3 text-center text-[24px] font-semibold leading-none">{user?.name || "Customer"}</p>
       <p className="text-center text-xs text-zinc-500">{user?.email || clerkUserId || "user"}</p>
-      <nav className="mt-4 border-t border-zinc-100 pt-4 space-y-2 text-sm">
-        {accountLinks.map((link) => (
-          <Link key={link.href} href={link.href} className="block rounded px-2 py-1.5 text-zinc-600 hover:bg-zinc-100">
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      <AccountSidebarNav links={accountLinks} />
       <ClerkSignOutButton
         label={config.account.sidebar.signOutLabel}
         className="mt-5 w-full rounded-full bg-brand-yellow py-2 text-sm font-semibold"
@@ -33,4 +27,3 @@ export async function AccountSidebar() {
     </aside>
   );
 }
-

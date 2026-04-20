@@ -20,6 +20,7 @@ const AddressSchema = z.object({
 const CreateSchema = z.object({ address: AddressSchema });
 const UpdateSchema = z.object({ addressId: z.string().min(1), address: AddressSchema.partial(), setDefault: z.boolean().optional() });
 const RemoveSchema = z.object({ addressId: z.string().min(1) });
+const MAX_ADDRESSES = 4;
 
 export async function GET() {
   const { user } = await requireUser();
@@ -42,15 +43,35 @@ export async function POST(req: Request) {
 
   const address = parsed.data.address;
   const session = await mongoose.startSession();
+  let limitReached = false;
   try {
-    await session.withTransaction(async () => {
-      if (address.isDefault) {
-        await User.updateOne({ _id: user._id }, { $set: { "addresses.$[].isDefault": false } }, { session });
+    try {
+      await session.withTransaction(async () => {
+        if (address.isDefault) {
+          await User.updateOne({ _id: user._id }, { $set: { "addresses.$[].isDefault": false } }, { session });
+        }
+        const pushResult = await User.updateOne(
+          { _id: user._id, [`addresses.${MAX_ADDRESSES - 1}`]: { $exists: false } },
+          { $push: { addresses: address } },
+          { session },
+        );
+        if (!pushResult.modifiedCount) {
+          throw new Error("ADDRESS_LIMIT_REACHED");
+        }
+      });
+    } catch (e) {
+      if (e instanceof Error && e.message === "ADDRESS_LIMIT_REACHED") {
+        limitReached = true;
+      } else {
+        throw e;
       }
-      await User.updateOne({ _id: user._id }, { $push: { addresses: address } }, { session });
-    });
+    }
   } finally {
     session.endSession();
+  }
+
+  if (limitReached) {
+    return error(`You can save up to ${MAX_ADDRESSES} addresses only.`, 400);
   }
 
   const updated = await User.findById(user._id).select("addresses").lean();
@@ -109,4 +130,3 @@ export async function DELETE(req: Request) {
   const updated = await User.findById(user._id).select("addresses").lean();
   return json({ ok: true, addresses: updated?.addresses ?? [] });
 }
-

@@ -14,8 +14,10 @@ export async function TopCategoriesGridSection({ section, siteConfig }: SectionR
     )
   ).slice(0, 10);
 
-  const fromSlugs = slugList.length ? (await getCategoriesBySlugsOrMock(slugList)).categories : [];
-  const fallback = !fromSlugs.length ? (await getTopCategoriesOrMock()).categories.slice(0, 10) : [];
+  const fromSlugsResult = slugList.length ? await getCategoriesBySlugsOrMock(slugList) : null;
+  const fromSlugs = fromSlugsResult?.source === "db" ? fromSlugsResult.categories : [];
+  const fallbackResult = !fromSlugs.length ? await getTopCategoriesOrMock() : null;
+  const fallback = fallbackResult?.source === "db" ? fallbackResult.categories.slice(0, 10) : [];
   const categories = (fromSlugs.length ? fromSlugs : fallback)
     .filter((c): c is NonNullable<typeof c> => c != null)
     .slice(0, 10);

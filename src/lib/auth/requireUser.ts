@@ -23,11 +23,10 @@ export async function requireUser() {
   const user = await User.findOneAndUpdate(
     { clerkId: userId },
     { $set: { email, name }, $setOnInsert: { role: "customer", clerkId: userId } },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   )
     .select("_id role clerkId email name")
     .lean();
 
   return { user, clerkUserId: userId };
 }
-

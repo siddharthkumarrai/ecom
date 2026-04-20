@@ -9,10 +9,11 @@ export async function CategoryProductRowSection({ section }: SectionRenderProps)
   const productLimit = Number.isFinite(rawProductLimit) && rawProductLimit > 0
     ? Math.max(1, Math.min(500, Math.trunc(rawProductLimit)))
     : 0;
-  const { products } = await getProductsByCategorySlugOrMock(
+  const categoryProductsResult = await getProductsByCategorySlugOrMock(
     categorySlug,
     productLimit
   );
+  const products = categoryProductsResult.source === "db" ? categoryProductsResult.products : [];
   const linksFromArray = Array.isArray(section.config.anchorLinks)
     ? section.config.anchorLinks
       .map((item) => {
@@ -39,8 +40,6 @@ export async function CategoryProductRowSection({ section }: SectionRenderProps)
       return true;
     });
   })();
-
-  if (!products.length) return null;
 
   return (
     <HomeCategorySection

@@ -5,13 +5,7 @@ import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } 
 import Image from "next/image";
 
 interface HeroBannerProps {
-  eyebrow: string;
-  title: string;
-  description: string;
-  primaryCtaLabel: string;
-  primaryCtaHref: string;
-  secondaryCtaLabel: string;
-  secondaryCtaHref: string;
+  eyebrow?: string;
   slides?: Array<{
     title: string;
     subtitle: string;
@@ -61,29 +55,13 @@ function renderFlippingTitleWords(title: string, isActive: boolean) {
 
 export function HeroBanner({
   eyebrow,
-  title,
-  description,
-  primaryCtaLabel,
-  primaryCtaHref,
-  secondaryCtaLabel,
-  secondaryCtaHref,
   slides,
   sideCards,
   autoplayMs = 4200,
 }: HeroBannerProps) {
   const cards = sideCards ?? [];
 
-  const computedSlides = useMemo(
-    () =>
-      slides?.length
-        ? slides
-        : [
-            { title, subtitle: description, ctaLabel: primaryCtaLabel, ctaHref: primaryCtaHref, imageUrl: "" },
-            { title: `${title} - Fast Fulfillment`, subtitle: description, ctaLabel: secondaryCtaLabel, ctaHref: secondaryCtaHref, imageUrl: "" },
-            { title: `${title} - Trusted Components`, subtitle: description, ctaLabel: primaryCtaLabel, ctaHref: primaryCtaHref, imageUrl: "" },
-          ],
-    [slides, title, description, primaryCtaLabel, primaryCtaHref, secondaryCtaLabel, secondaryCtaHref]
-  );
+  const computedSlides = useMemo(() => (Array.isArray(slides) ? slides : []), [slides]);
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [dragStartX, setDragStartX] = useState<number | null>(null);
@@ -129,6 +107,10 @@ export function HeroBanner({
     setDragStartX(null);
     setDragDeltaX(0);
   };
+
+  if (!computedSlides.length) {
+    return null;
+  }
 
   return (
     <section className="mt-0">
@@ -207,6 +189,8 @@ export function HeroBanner({
                         alt={slide.title}
                         fill
                         sizes="(max-width: 768px) 50vw, (max-width: 1024px) 100vw, 66vw"
+                        priority={index === 0}
+                        loading={index === 0 ? "eager" : "lazy"}
                         className={`object-contain object-center p-1 sm:p-0 transition-all duration-700 md:p-5 ${isActive ? "hero-slide-image-enter scale-[1.03] sm:scale-[1.06] md:scale-100 opacity-100" : "scale-95 opacity-70"}`}
                         draggable={false}
                       />

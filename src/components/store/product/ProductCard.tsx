@@ -38,8 +38,9 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
           <AnimatedCartButton
             ariaLabel={`Add ${product.name} to cart`}
-            className="h-6 w-12 shrink-0 lg:h-7 lg:w-14"
-            iconClassName="h-[13px] w-[30px] lg:h-[15px] lg:w-[34px]"
+            productId={product.id}
+            className="h-8 w-16 shrink-0 lg:h-9 lg:w-[72px]"
+            iconClassName="h-[16px] w-[36px] lg:h-[19px] lg:w-[44px]"
           />
         </div>
         {product.stock > 0 && product.stock < 5 ? <p className="mt-1 text-[11px] font-semibold text-rose-600">{product.stock} remaining</p> : null}

@@ -132,7 +132,10 @@ export function AllCategoryMenu({ categories, products, label, viewAllBrandsLabe
                   </Link>
                 ))
               ) : (
-                <p className="col-span-2 text-sm text-zinc-500">No items available for this category yet.</p>
+                <div className="col-span-2 text-sm text-zinc-500">
+                  <p>No products available in this category right now.</p>
+                  <p className="mt-1">Please check again later or explore.</p>
+                </div>
               )}
             </div>
           </div>
@@ -140,4 +143,3 @@ export function AllCategoryMenu({ categories, products, label, viewAllBrandsLabe
     </div>
   );
 }
-

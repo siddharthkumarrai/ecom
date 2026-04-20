@@ -3,9 +3,11 @@ import { Footer } from "@/components/store/layout/Footer";
 import { Header } from "@/components/store/layout/Header";
 import { getHomeProductsOrMock, getSiteConfigOrMock, getTopCategoriesOrMock } from "@/lib/store/data";
 import { getCurrentUserRole, isAdminRole } from "@/lib/auth/roles";
+import { PhantomUiLoader } from "@/components/store/shared/PhantomUiLoader";
 import type { CSSProperties, ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { Toaster } from "sonner";
 
 export default async function StoreLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
@@ -13,7 +15,14 @@ export default async function StoreLayout({ children }: { children: ReactNode })
   const role = await getCurrentUserRole();
   if (isAdminRole(role) && !isCmsStorePreview) redirect("/admin/dashboard");
 
-  const [{ config }, { categories }, { products }] = await Promise.all([getSiteConfigOrMock(), getTopCategoriesOrMock(), getHomeProductsOrMock(200)]);
+  const [siteConfigResult, topCategoriesResult, homeProductsResult] = await Promise.all([
+    getSiteConfigOrMock(),
+    getTopCategoriesOrMock(),
+    getHomeProductsOrMock(200),
+  ]);
+  const config = siteConfigResult.config;
+  const categories = topCategoriesResult.source === "db" ? topCategoriesResult.categories : [];
+  const products = homeProductsResult.source === "db" ? homeProductsResult.products : [];
   const layoutStyle = {
     backgroundColor: config.appearance.pageBg,
     "--content-px-mobile": `${config.appearance.contentPaddingMobile}px`,
@@ -22,6 +31,7 @@ export default async function StoreLayout({ children }: { children: ReactNode })
 
   return (
     <div className="min-h-screen overflow-x-hidden text-zinc-900 [--content-px-desktop:40px] [--content-px-mobile:24px]" style={layoutStyle}>
+      <PhantomUiLoader />
       {config.announcement.isEnabled ? (
         <AnnouncementBar
           text={config.announcement.text}
@@ -49,6 +59,7 @@ export default async function StoreLayout({ children }: { children: ReactNode })
       <div className="w-full px-[var(--content-px-mobile)] py-4 md:px-[var(--content-px-desktop)]">
         {children}
       </div>
+      <Toaster richColors position="top-right" />
       <Footer
         columns={config.footer.columns}
         phones={config.footer.phones}
