@@ -64,6 +64,7 @@ export function HeroBanner({
   const computedSlides = useMemo(() => (Array.isArray(slides) ? slides : []), [slides]);
 
   const [activeSlide, setActiveSlide] = useState(0);
+  const [animationCycle, setAnimationCycle] = useState(0);
   const [dragStartX, setDragStartX] = useState<number | null>(null);
   const [dragDeltaX, setDragDeltaX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -83,6 +84,10 @@ export function HeroBanner({
       return computedSlides.length - 1;
     });
   }, [computedSlides.length]);
+
+  useEffect(() => {
+    setAnimationCycle((current) => current + 1);
+  }, [activeSlide]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     setIsDragging(true);
@@ -147,6 +152,8 @@ export function HeroBanner({
           >
             {computedSlides.map((slide, index) => {
               const isActive = activeSlide === index;
+              const textAnimationKey = isActive ? `hero-text-${index}-${animationCycle}` : `hero-text-${index}`;
+              const imageAnimationKey = isActive ? `hero-image-${index}-${animationCycle}` : `hero-image-${index}`;
               return (
                 <div
                   key={`${slide.title}-${index}`}
@@ -156,6 +163,7 @@ export function HeroBanner({
                   <div className="relative grid min-h-[184px] grid-cols-2 items-center sm:min-h-[220px] md:min-h-[390px] md:grid-cols-[1fr_1.3fr]">
                     <div className="flex h-full flex-col justify-center px-2.5 py-2 sm:px-3.5 sm:py-3 md:px-8 md:py-8">
                       <div
+                        key={textAnimationKey}
                         className={`transition-all duration-700 ease-out ${
                           isActive ? "hero-slide-text-enter translate-y-0 opacity-100" : "translate-y-4 opacity-0"
                         }`}
@@ -185,6 +193,7 @@ export function HeroBanner({
                     </div>
                     <div className="relative flex min-h-[184px] items-center justify-center sm:min-h-[220px] md:min-h-[390px]">
                       <Image
+                        key={imageAnimationKey}
                         src={slide.imageUrl || "/hero-placeholder.svg"}
                         alt={slide.title}
                         fill
