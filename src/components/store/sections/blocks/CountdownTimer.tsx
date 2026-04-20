@@ -37,10 +37,10 @@ export function CountdownTimer({ endsAt }: { endsAt?: string }) {
   ];
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {blocks.map((item) => (
         <div key={item.label} className="rounded border border-zinc-200 bg-white px-2 py-1.5 text-center">
-          <div className="text-lg font-bold">{item.value}</div>
+          <div className="text-base font-bold sm:text-lg">{item.value}</div>
           <div className="text-[10px] font-bold text-zinc-500">{item.label}</div>
         </div>
       ))}

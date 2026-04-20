@@ -27,3 +27,53 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.cart-btn {
+  cursor: pointer;
+}
+
+.cart-btn .cart-btn-bg {
+  fill: #f5c400 !important;
+  transition: fill 0.2s;
+}
+
+.cart-btn .cart-btn-path {
+  fill: none;
+  stroke: #1a1a1a !important;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cart-btn .cart-btn-dot {
+  fill: #1a1a1a !important;
+}
+
+.cart-btn:hover .cart-btn-bg {
+  fill: #ffd84d !important;
+}
+
+.cart-btn:hover .cart-btn-cg {
+  animation: cart-wiggle 0.45s ease 1;
+}
+
+@keyframes cart-wiggle {
+  0% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(-12deg);
+  }
+  45% {
+    transform: rotate(10deg);
+  }
+  65% {
+    transform: rotate(-6deg);
+  }
+  82% {
+    transform: rotate(4deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}

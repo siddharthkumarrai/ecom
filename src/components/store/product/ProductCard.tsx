@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/store/types";
 import { RatingStars } from "@/components/store/product/RatingStars";
+import { AnimatedCartButton } from "@/components/store/product/AnimatedCartButton";
 import { WishlistHeartButton } from "@/components/store/wishlist/WishlistHeartButton";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -16,7 +17,7 @@ export function ProductCard({ product }: { product: Product }) {
           <Image src={product.image} alt={product.name} fill className="object-cover" sizes="48px" />
         ) : null}
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <Link href={`/products/${product.slug}`} className="line-clamp-2 text-[13px] font-semibold text-brand-blue hover:underline">
             {product.name}
@@ -27,16 +28,22 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="mt-1">
           <RatingStars rating={product.rating} count={product.reviewCount} />
         </div>
-        <div className="mt-1 flex items-center gap-2">
-          {typeof product.costPrice === "number" && product.costPrice > product.price ? (
-            <span className="text-[11px] text-zinc-400 line-through">₹ {product.costPrice}</span>
-          ) : null}
-          <p className="text-[13px] font-semibold">₹ {product.sellingPrice ?? product.price}</p>
-          {discountPercent > 0 ? <span className="text-[11px] font-semibold text-emerald-600">{discountPercent}% off</span> : null}
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {typeof product.costPrice === "number" && product.costPrice > product.price ? (
+              <span className="text-[11px] text-zinc-400 line-through">₹ {product.costPrice}</span>
+            ) : null}
+            <p className="text-[13px] font-semibold">₹ {product.sellingPrice ?? product.price}</p>
+            {discountPercent > 0 ? <span className="text-[11px] font-semibold text-emerald-600">{discountPercent}% off</span> : null}
+          </div>
+          <AnimatedCartButton
+            ariaLabel={`Add ${product.name} to cart`}
+            className="h-6 w-12 shrink-0 lg:h-7 lg:w-14"
+            iconClassName="h-[13px] w-[30px] lg:h-[15px] lg:w-[34px]"
+          />
         </div>
         {product.stock > 0 && product.stock < 5 ? <p className="mt-1 text-[11px] font-semibold text-rose-600">{product.stock} remaining</p> : null}
       </div>
     </article>
   );
 }
-

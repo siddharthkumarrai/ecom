@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { CategoryProductsCatalog } from "@/components/store/category/CategoryProductsCatalog";
+import { StoreBottomSections } from "@/components/store/layout/StoreBottomSections";
 import { getCategoryBySlugOrMock, getProductsByCategorySlugOrMock, getSiteConfigOrMock } from "@/lib/store/data";
 
 interface Props {
@@ -16,7 +17,7 @@ export default async function CategoryPage({ params }: Props) {
   if (!category) return notFound();
 
   return (
-    <main className="pb-2">
+    <main className="space-y-4 pb-2">
       <CategoryProductsCatalog
         categoryName={category.name}
         categorySlug={category.slug}
@@ -24,7 +25,7 @@ export default async function CategoryPage({ params }: Props) {
         actionButtonBg={config.appearance.productActionButtonBg}
         actionButtonHoverBg={config.appearance.productActionButtonHoverBg}
       />
+      <StoreBottomSections />
     </main>
   );
 }
-

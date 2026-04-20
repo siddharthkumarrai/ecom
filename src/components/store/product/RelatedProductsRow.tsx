@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/lib/store/types";
+import { AnimatedCartButton } from "@/components/store/product/AnimatedCartButton";
 import { WishlistHeartButton } from "@/components/store/wishlist/WishlistHeartButton";
 
 export function RelatedProductsRow({ products }: { products: Product[] }) {
@@ -15,16 +16,20 @@ export function RelatedProductsRow({ products }: { products: Product[] }) {
             <div className="absolute right-2 top-2 z-10">
               <WishlistHeartButton productId={product.id} className="h-7 w-7" />
             </div>
-            <Link href={`/products/${product.slug}`}>
+            <Link href={`/products/${product.slug}`} className="block">
               <p className="line-clamp-2 min-h-8 text-[11px] text-blue-700">{product.name}</p>
               <div className="relative mt-1 h-24 w-full bg-zinc-50">
                 {product.image ? <Image src={product.image} alt={product.name} fill className="object-contain p-1" sizes="140px" /> : null}
               </div>
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-sm font-semibold text-zinc-800">₹ {product.sellingPrice ?? product.price}</p>
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-brand-yellow text-[11px] font-bold">›</span>
-              </div>
             </Link>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-sm font-semibold text-zinc-800">₹ {product.sellingPrice ?? product.price}</p>
+              <AnimatedCartButton
+                ariaLabel={`Add ${product.name} to cart`}
+                className="h-6 w-12 lg:h-7 lg:w-14"
+                iconClassName="h-[13px] w-[30px] lg:h-[15px] lg:w-[34px]"
+              />
+            </div>
           </article>
         ))}
       </div>

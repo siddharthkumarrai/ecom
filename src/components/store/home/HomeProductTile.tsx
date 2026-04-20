@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/lib/store/types";
 import { CompareToggleButton } from "@/components/store/compare/CompareToggleButton";
+import { AnimatedCartButton } from "@/components/store/product/AnimatedCartButton";
 import { WishlistHeartButton } from "@/components/store/wishlist/WishlistHeartButton";
 
 export function HomeProductTile({ product }: { product: Product }) {
@@ -24,13 +25,7 @@ export function HomeProductTile({ product }: { product: Product }) {
       </Link>
       <div className="flex items-center justify-between px-2.5 pb-2.5 transition-colors duration-200 group-hover:bg-zinc-50/40">
         <span className="text-xl font-medium text-zinc-900">₹ {product.sellingPrice ?? product.price}</span>
-        <button
-          type="button"
-          aria-label={`Add ${product.name} to cart`}
-          className="inline-flex h-8 w-8 items-center justify-center bg-[#f5c400] text-[14px] font-bold text-zinc-900 transition hover:bg-[#ffd84d]"
-        >
-          +
-        </button>
+        <AnimatedCartButton ariaLabel={`Add ${product.name} to cart`} />
       </div>
       <div className="h-10 overflow-hidden border-t border-zinc-200 bg-zinc-50/40 px-2.5 py-2">
         <div className="pointer-events-none flex items-center gap-3 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100">

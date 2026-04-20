@@ -70,24 +70,26 @@ export function ProductDetailTabs({ product, slug }: { product: Product; slug: s
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white">
-      <div className="flex flex-wrap items-center justify-center gap-1 border-b border-zinc-200 px-3 pt-2">
-        {[
-          { id: "description", label: "Description" },
-          { id: "specification", label: "Specification" },
-          { id: "reviews", label: "Reviews" },
-          { id: "docs", label: "Technical Documents & Videos" },
-        ].map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setTab(item.id as TabKey)}
-            className={`border-b-2 px-3 py-2.5 text-sm transition ${
-              tab === item.id ? "border-brand-yellow font-semibold text-zinc-900" : "border-transparent text-zinc-500"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div className="overflow-x-auto border-b border-zinc-200 md:overflow-visible">
+        <div className="flex min-w-max items-center gap-1 px-3 pt-2 md:min-w-0 md:flex-wrap md:justify-center">
+          {[
+            { id: "description", label: "Description" },
+            { id: "specification", label: "Specification" },
+            { id: "reviews", label: "Reviews" },
+            { id: "docs", label: "Technical Documents & Videos" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTab(item.id as TabKey)}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition ${
+                tab === item.id ? "border-brand-yellow font-semibold text-zinc-900" : "border-transparent text-zinc-500"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="p-4 md:p-6">
         {tab === "description" ? (

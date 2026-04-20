@@ -8,6 +8,7 @@ import { RelatedProductsRow } from "@/components/store/product/RelatedProductsRo
 import { getProductsByCategorySlugOrMock, getSiteConfigOrMock } from "@/lib/store/data";
 import { WishlistHeartButton } from "@/components/store/wishlist/WishlistHeartButton";
 import { ProductImageGallery } from "@/components/store/product/ProductImageGallery";
+import { StoreBottomSections } from "@/components/store/layout/StoreBottomSections";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -27,7 +28,7 @@ export default async function ProductPage({ params }: Props) {
       : 0;
 
   return (
-    <main className="space-y-5">
+    <main className="-mx-[var(--content-px-mobile)] space-y-5 md:-mx-[var(--content-px-desktop)]">
       <nav aria-label="Breadcrumb" className="text-xs text-zinc-500">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>
@@ -91,7 +92,8 @@ export default async function ProductPage({ params }: Props) {
       <ProductDetailTabs product={product} slug={slug} />
 
       <RelatedProductsRow products={related} />
+
+      <StoreBottomSections />
     </main>
   );
 }
-

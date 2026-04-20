@@ -37,19 +37,19 @@ export async function WeekDealsSection({ section, siteConfig, sectionData }: Sec
   if (!products.length) return null;
 
   return (
-    <section className="grid gap-3 border border-zinc-200 bg-[#f5f5f5] p-3 md:p-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-      <aside className="bg-transparent p-2">
-        <p className="text-[30px] leading-[34px] font-medium text-zinc-800 md:text-[38px] md:leading-[42px]">{title}</p>
-        <div className="mt-3 text-7xl leading-none text-zinc-700 md:mt-4 md:text-8xl">%</div>
-        <p className="mt-3 text-sm text-zinc-700">{subtitle}</p>
+    <section className="grid min-w-0 gap-3 border border-zinc-200 bg-[#f5f5f5] p-2 sm:p-3 md:p-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <aside className="bg-transparent p-1.5 sm:p-2">
+        <p className="text-[22px] leading-7 font-medium text-zinc-800 sm:text-[28px] sm:leading-8 md:text-[34px] md:leading-[38px]">{title}</p>
+        <div className="mt-2 text-5xl leading-none text-zinc-700 sm:mt-3 sm:text-6xl md:mt-4 md:text-7xl">%</div>
+        <p className="mt-2 text-xs text-zinc-700 sm:mt-3 sm:text-sm">{subtitle}</p>
         <div className="mt-3">
           <CountdownTimer endsAt={endsAt} />
         </div>
       </aside>
-      <div className="border border-zinc-200 bg-white">
+      <div className="min-w-0 overflow-hidden border border-zinc-200 bg-white">
         <div className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {products.map((product) => (
-            <div key={product.id} className="min-w-[72%] shrink-0 snap-start sm:min-w-[48%] md:min-w-[35%] lg:min-w-[240px] xl:min-w-[220px]">
+            <div key={product.id} className="min-w-[48%] shrink-0 snap-start sm:min-w-[40%] md:min-w-[32%] lg:min-w-[240px] xl:min-w-[220px]">
               <HomeProductTile product={product} />
             </div>
           ))}
