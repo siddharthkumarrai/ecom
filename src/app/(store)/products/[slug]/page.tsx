@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { getProductBySlugOrMock } from "@/lib/store/data";
 import { RatingStars } from "@/components/store/product/RatingStars";
 import { ProductDetailClient } from "@/components/store/product/ProductDetailClient";
@@ -10,6 +11,7 @@ import { getProductsByCategorySlugOrMock, getSiteConfigOrMock } from "@/lib/stor
 import { WishlistHeartButton } from "@/components/store/wishlist/WishlistHeartButton";
 import { ProductImageGallery } from "@/components/store/product/ProductImageGallery";
 import { StoreBottomSections } from "@/components/store/layout/StoreBottomSections";
+import { CompareToggleButton } from "@/components/store/compare/CompareToggleButton";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -30,7 +32,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <main className="-mx-[var(--content-px-mobile)] space-y-5 md:-mx-[var(--content-px-desktop)]">
-      <nav aria-label="Breadcrumb" className="text-xs text-zinc-500">
+      <nav aria-label="Breadcrumb" className="hidden text-xs text-zinc-500 md:block">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>
             <Link href="/" className="hover:text-zinc-700">
@@ -51,12 +53,12 @@ export default async function ProductPage({ params }: Props) {
           <li className="line-clamp-1 max-w-[300px] font-medium text-zinc-700">{product.name}</li>
         </ol>
       </nav>
-      <section className="grid gap-6 rounded-2xl border border-zinc-200 bg-white p-4 md:grid-cols-[340px_minmax(0,1fr)] md:p-6">
+      <section className="grid gap-4 border-b border-zinc-200 bg-white p-2.5 md:grid-cols-[360px_minmax(0,1fr)] md:gap-7 md:rounded-2xl md:border md:p-6">
         <ProductImageGallery name={product.name} images={product.images?.length ? product.images : product.image ? [product.image] : []} />
-        <section>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-800 md:text-[34px]">{product.name}</h1>
-          <p className="mt-1 text-xs text-zinc-500">Partnumber: {product.partNumber}</p>
-          <div className="mt-1">
+        <section className="pt-1">
+          <h1 className="text-[38px] font-bold leading-[1.08] tracking-tight text-zinc-800 md:text-[34px]">{product.name}</h1>
+          <p className="mt-1 text-xs text-zinc-500">({product.reviewCount ?? 0} reviews)</p>
+          <div className="mt-1 hidden md:block">
             <RatingStars rating={product.rating} count={product.reviewCount} size="md" />
           </div>
           <p className={`mt-1 text-sm font-semibold ${product.stock > 0 ? "text-emerald-600" : "text-rose-600"}`}>
@@ -64,20 +66,30 @@ export default async function ProductPage({ params }: Props) {
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
-            <button className="rounded-full bg-brand-yellow px-4 py-2 font-semibold text-zinc-900">Message Seller</button>
-            <div className="inline-flex items-center gap-2 text-zinc-500">
-              <WishlistHeartButton productId={product.id} />
-              <span>Wishlist</span>
-            </div>
-            <span className="text-zinc-500">⇄ Compare</span>
+            <button type="button" className="rounded-full bg-brand-yellow px-4 py-2 font-semibold text-zinc-900">
+              Message Seller
+            </button>
+            <WishlistHeartButton productId={product.id} variant="inline" />
+            <CompareToggleButton productId={product.id} variant="inline" />
           </div>
 
-          {product.brandName ? <p className="mt-4 text-sm font-semibold uppercase italic tracking-wide text-zinc-700">{product.brandName}</p> : null}
+          {product.brandName ? (
+            <div className="mt-4 border-t border-zinc-200 pt-3">
+              <p className="text-xs text-zinc-500">Brand</p>
+              <div className="mt-1 flex items-center gap-2">
+                {product.brandLogo ? (
+                  <Image src={product.brandLogo} alt={product.brandName} width={120} height={28} className="h-7 w-auto object-contain" />
+                ) : null}
+                <p className="text-sm font-semibold uppercase tracking-wide text-brand-blue">{product.brandName}</p>
+              </div>
+            </div>
+          ) : null}
 
-          <div className="mt-4 flex flex-wrap items-end gap-2.5">
-            <p className="text-3xl font-extrabold text-zinc-800 md:text-[40px]">Unit Price: ₹ {product.sellingPrice ?? product.price}</p>
+          <div className="mt-4 space-y-0.5">
+            <p className="text-[37px] font-extrabold leading-none text-zinc-800 md:text-[40px]">Unit Price: ₹ {product.sellingPrice ?? product.price}</p>
+            <p className="text-xs font-medium text-zinc-500">PartNumber: {product.partNumber}</p>
             {typeof product.costPrice === "number" && product.costPrice > product.price ? (
-              <p className="text-lg text-zinc-400 line-through">₹ {product.costPrice}</p>
+              <p className="text-base text-zinc-400 line-through">₹ {product.costPrice}</p>
             ) : null}
             {discountPercent > 0 ? <span className="mb-1 text-sm font-semibold text-emerald-600">{discountPercent}% off</span> : null}
           </div>

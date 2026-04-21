@@ -38,6 +38,10 @@ const PutBodySchema = z.object({
 });
 
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const ANNOUNCEMENT_FONT_WEIGHTS = new Set(["400", "500", "600", "700"]);
+const ANNOUNCEMENT_FONT_STYLES = new Set(["normal", "italic"]);
+const ANNOUNCEMENT_TEXT_TRANSFORMS = new Set(["none", "uppercase", "capitalize"]);
+const ANNOUNCEMENT_ANIMATIONS = new Set(["none", "marquee", "pulse", "fade"]);
 
 type AutoCategorySection = {
   categorySlug: string;
@@ -169,12 +173,21 @@ export async function GET() {
 
   await connectDB();
   const doc = await SiteConfigModel.findOne({ key: "main" })
-    .select("homepage.sections branding.storeName branding.logoUrl seo.siteName seo.favicon appearance.navbarBg footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
+    .select("homepage.sections announcement.messages branding.storeName branding.logoUrl seo.siteName seo.favicon appearance.navbarBg appearance.announcementText appearance.announcementFontSize appearance.announcementFontWeight appearance.announcementFontStyle appearance.announcementTextTransform appearance.announcementAnimation footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
     .lean<{
       homepage?: { sections?: unknown[] };
+      announcement?: { messages?: Array<{ text?: string }> };
       branding?: { storeName?: string; logoUrl?: string };
       seo?: { siteName?: string; favicon?: string };
-      appearance?: { navbarBg?: string };
+      appearance?: {
+        navbarBg?: string;
+        announcementText?: string;
+        announcementFontSize?: number;
+        announcementFontWeight?: string;
+        announcementFontStyle?: string;
+        announcementTextTransform?: string;
+        announcementAnimation?: string;
+      };
       footer?: {
         columns?: Array<{ title?: string; links?: Array<{ label?: string; href?: string }> }>;
         contactPhone?: string[];
@@ -189,7 +202,24 @@ export async function GET() {
   const globalLogoUrl = typeof doc?.branding?.logoUrl === "string" ? doc.branding.logoUrl : "";
   const globalStoreTitle = typeof doc?.seo?.siteName === "string" ? doc.seo.siteName : "";
   const globalFavicon = typeof doc?.seo?.favicon === "string" ? doc.seo.favicon : "";
+  const globalAnnouncementText = typeof doc?.announcement?.messages?.[0]?.text === "string" ? doc.announcement.messages[0].text : "";
   const globalNavbarBg = typeof doc?.appearance?.navbarBg === "string" ? doc.appearance.navbarBg : "";
+  const globalAnnouncementTextColor = typeof doc?.appearance?.announcementText === "string" ? doc.appearance.announcementText : "#5f6368";
+  const globalAnnouncementFontSize = typeof doc?.appearance?.announcementFontSize === "number"
+    ? Math.max(9, Math.min(24, Math.round(doc.appearance.announcementFontSize)))
+    : 11;
+  const globalAnnouncementFontWeight = ANNOUNCEMENT_FONT_WEIGHTS.has(String(doc?.appearance?.announcementFontWeight ?? ""))
+    ? String(doc?.appearance?.announcementFontWeight)
+    : "500";
+  const globalAnnouncementFontStyle = ANNOUNCEMENT_FONT_STYLES.has(String(doc?.appearance?.announcementFontStyle ?? ""))
+    ? String(doc?.appearance?.announcementFontStyle)
+    : "normal";
+  const globalAnnouncementTextTransform = ANNOUNCEMENT_TEXT_TRANSFORMS.has(String(doc?.appearance?.announcementTextTransform ?? ""))
+    ? String(doc?.appearance?.announcementTextTransform)
+    : "none";
+  const globalAnnouncementAnimation = ANNOUNCEMENT_ANIMATIONS.has(String(doc?.appearance?.announcementAnimation ?? ""))
+    ? String(doc?.appearance?.announcementAnimation)
+    : "marquee";
   const globalFooterColumns = sanitizeFooterColumns(doc?.footer?.columns ?? []);
   const globalFooterPhones = Array.isArray(doc?.footer?.contactPhone)
     ? doc.footer.contactPhone.map((phone) => String(phone || "").trim()).filter(Boolean)
@@ -213,7 +243,28 @@ export async function GET() {
         const baseConfig = row.config && typeof row.config === "object" && !Array.isArray(row.config)
           ? row.config as Record<string, unknown>
           : {};
-        const config = row.type === "navbar"
+        const config = row.type === "announcement_bar"
+          ? {
+              ...baseConfig,
+              text: String(baseConfig.text ?? globalAnnouncementText ?? ""),
+              textColor: String(baseConfig.textColor ?? globalAnnouncementTextColor ?? "#5f6368"),
+              fontSize: Number.isFinite(Number(baseConfig.fontSize))
+                ? Math.max(9, Math.min(24, Math.round(Number(baseConfig.fontSize))))
+                : globalAnnouncementFontSize,
+              fontWeight: ANNOUNCEMENT_FONT_WEIGHTS.has(String(baseConfig.fontWeight ?? ""))
+                ? String(baseConfig.fontWeight)
+                : globalAnnouncementFontWeight,
+              fontStyle: ANNOUNCEMENT_FONT_STYLES.has(String(baseConfig.fontStyle ?? ""))
+                ? String(baseConfig.fontStyle)
+                : globalAnnouncementFontStyle,
+              textTransform: ANNOUNCEMENT_TEXT_TRANSFORMS.has(String(baseConfig.textTransform ?? ""))
+                ? String(baseConfig.textTransform)
+                : globalAnnouncementTextTransform,
+              animation: ANNOUNCEMENT_ANIMATIONS.has(String(baseConfig.animation ?? ""))
+                ? String(baseConfig.animation)
+                : globalAnnouncementAnimation,
+            }
+          : row.type === "navbar"
           ? {
               ...baseConfig,
               storeName: String(baseConfig.storeName ?? globalStoreName ?? ""),
@@ -281,6 +332,28 @@ export async function PUT(req: Request) {
   const firstFooterSection = parsed.data.sections.find((section) => section.type === "footer");
   const announcementTextRaw = firstAnnouncementSection?.config?.text;
   const announcementText = typeof announcementTextRaw === "string" ? announcementTextRaw.trim() : "";
+  const announcementTextColorRaw = firstAnnouncementSection?.config?.textColor;
+  const announcementTextColor = typeof announcementTextColorRaw === "string" ? announcementTextColorRaw.trim() : "";
+  const announcementFontSizeInput = Number(firstAnnouncementSection?.config?.fontSize);
+  const announcementFontSize = Number.isFinite(announcementFontSizeInput)
+    ? Math.max(9, Math.min(24, Math.round(announcementFontSizeInput)))
+    : null;
+  const announcementFontWeightRaw = firstAnnouncementSection?.config?.fontWeight;
+  const announcementFontWeight = ANNOUNCEMENT_FONT_WEIGHTS.has(String(announcementFontWeightRaw ?? ""))
+    ? String(announcementFontWeightRaw)
+    : "";
+  const announcementFontStyleRaw = firstAnnouncementSection?.config?.fontStyle;
+  const announcementFontStyle = ANNOUNCEMENT_FONT_STYLES.has(String(announcementFontStyleRaw ?? ""))
+    ? String(announcementFontStyleRaw)
+    : "";
+  const announcementTextTransformRaw = firstAnnouncementSection?.config?.textTransform;
+  const announcementTextTransform = ANNOUNCEMENT_TEXT_TRANSFORMS.has(String(announcementTextTransformRaw ?? ""))
+    ? String(announcementTextTransformRaw)
+    : "";
+  const announcementAnimationRaw = firstAnnouncementSection?.config?.animation;
+  const announcementAnimation = ANNOUNCEMENT_ANIMATIONS.has(String(announcementAnimationRaw ?? ""))
+    ? String(announcementAnimationRaw)
+    : "";
   const navbarStoreNameRaw = firstNavbarSection?.config?.storeName;
   const navbarStoreName = typeof navbarStoreNameRaw === "string" ? navbarStoreNameRaw.trim() : "";
   const navbarStoreTitleRaw = firstNavbarSection?.config?.storeTitle;
@@ -312,8 +385,8 @@ export async function PUT(req: Request) {
   };
 
   if (firstAnnouncementSection || firstNavbarSection || firstFooterSection) {
-    const existingDoc = await SiteConfigModel.findOne({ key: "main" })
-        .select("homepage.sections announcement.messages branding.storeName branding.logoUrl seo.siteName seo.favicon appearance.navbarBg footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
+      const existingDoc = await SiteConfigModel.findOne({ key: "main" })
+        .select("homepage.sections announcement.messages branding.storeName branding.logoUrl seo.siteName seo.favicon appearance.navbarBg appearance.announcementText appearance.announcementFontSize appearance.announcementFontWeight appearance.announcementFontStyle appearance.announcementTextTransform appearance.announcementAnimation footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
         .lean<{
           homepage?: {
             sections?: Array<{
@@ -340,6 +413,12 @@ export async function PUT(req: Request) {
           };
           appearance?: {
             navbarBg?: string;
+            announcementText?: string;
+            announcementFontSize?: number;
+            announcementFontWeight?: string;
+            announcementFontStyle?: string;
+            announcementTextTransform?: string;
+            announcementAnimation?: string;
           };
           footer?: {
             columns?: Array<{ title?: string; links?: Array<{ label?: string; href?: string }> }>;
@@ -378,6 +457,48 @@ export async function PUT(req: Request) {
           : [{ text: announcementText, link: "", bgColor: "#F5C400", textColor: "#000000" }];
 
         setPatch["announcement.messages"] = nextMessages;
+      }
+
+      const existingAnnouncementTextColor = typeof existingDoc?.appearance?.announcementText === "string"
+        ? existingDoc.appearance.announcementText.trim().toLowerCase()
+        : "";
+      if (HEX_COLOR_RE.test(announcementTextColor) && announcementTextColor.toLowerCase() !== existingAnnouncementTextColor) {
+        setPatch["appearance.announcementText"] = announcementTextColor;
+      }
+
+      const existingAnnouncementFontSize = typeof existingDoc?.appearance?.announcementFontSize === "number"
+        ? Math.max(9, Math.min(24, Math.round(existingDoc.appearance.announcementFontSize)))
+        : null;
+      if (announcementFontSize !== null && announcementFontSize !== existingAnnouncementFontSize) {
+        setPatch["appearance.announcementFontSize"] = announcementFontSize;
+      }
+
+      const existingAnnouncementFontWeight = ANNOUNCEMENT_FONT_WEIGHTS.has(String(existingDoc?.appearance?.announcementFontWeight ?? ""))
+        ? String(existingDoc?.appearance?.announcementFontWeight)
+        : "";
+      if (announcementFontWeight && announcementFontWeight !== existingAnnouncementFontWeight) {
+        setPatch["appearance.announcementFontWeight"] = announcementFontWeight;
+      }
+
+      const existingAnnouncementFontStyle = ANNOUNCEMENT_FONT_STYLES.has(String(existingDoc?.appearance?.announcementFontStyle ?? ""))
+        ? String(existingDoc?.appearance?.announcementFontStyle)
+        : "";
+      if (announcementFontStyle && announcementFontStyle !== existingAnnouncementFontStyle) {
+        setPatch["appearance.announcementFontStyle"] = announcementFontStyle;
+      }
+
+      const existingAnnouncementTextTransform = ANNOUNCEMENT_TEXT_TRANSFORMS.has(String(existingDoc?.appearance?.announcementTextTransform ?? ""))
+        ? String(existingDoc?.appearance?.announcementTextTransform)
+        : "";
+      if (announcementTextTransform && announcementTextTransform !== existingAnnouncementTextTransform) {
+        setPatch["appearance.announcementTextTransform"] = announcementTextTransform;
+      }
+
+      const existingAnnouncementAnimation = ANNOUNCEMENT_ANIMATIONS.has(String(existingDoc?.appearance?.announcementAnimation ?? ""))
+        ? String(existingDoc?.appearance?.announcementAnimation)
+        : "";
+      if (announcementAnimation && announcementAnimation !== existingAnnouncementAnimation) {
+        setPatch["appearance.announcementAnimation"] = announcementAnimation;
       }
     }
 

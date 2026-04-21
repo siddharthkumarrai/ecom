@@ -44,7 +44,15 @@ export function buildDefaultHomepageSections(config: SiteConfig, autoCategorySec
       type: "announcement_bar",
       order: 1,
       enabled: true,
-      config: { text: config.announcement.text },
+      config: {
+        text: config.announcement.text,
+        textColor: config.appearance.announcementText,
+        fontSize: config.appearance.announcementFontSize,
+        fontWeight: config.appearance.announcementFontWeight,
+        fontStyle: config.appearance.announcementFontStyle,
+        textTransform: config.appearance.announcementTextTransform,
+        animation: config.appearance.announcementAnimation,
+      },
     },
     {
       id: "navbar",

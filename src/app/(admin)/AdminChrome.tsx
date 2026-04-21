@@ -12,7 +12,6 @@ const links = [
   { href: "/admin/brands", label: "Brands" },
   { href: "/admin/coupons", label: "Coupons" },
   { href: "/admin/cms/homepage", label: "Homepage" },
-  { href: "/admin/cms/announcements", label: "Announcements" },
   { href: "/admin/shipping", label: "Delivery Charges" },
   { href: "/admin/tracking", label: "Tracking" },
   { href: "/admin/payments", label: "Payments" },

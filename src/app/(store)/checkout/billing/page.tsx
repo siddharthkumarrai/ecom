@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckoutStepper } from "@/components/store/checkout/CheckoutStepper";
+import { isCheckoutAddressComplete, normalizeCheckoutAddress } from "@/lib/checkout/address";
 
 type AddressForm = {
   name: string;
@@ -42,6 +43,17 @@ function emptyAddress(): AddressForm {
   };
 }
 
+function parseAddressFromStorage(key: string): AddressForm | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    return normalizeCheckoutAddress(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
 export default function BillingPage() {
   const router = useRouter();
   const [couponCode] = useState(() => {
@@ -57,12 +69,17 @@ export default function BillingPage() {
   });
   const [form, setForm] = useState<AddressForm>(() => {
     if (typeof window === "undefined") return emptyAddress();
-    const shippingRaw = localStorage.getItem("lk_shipping_address");
-    const billingRaw = localStorage.getItem("lk_billing_address");
-    const shipping = shippingRaw ? (JSON.parse(shippingRaw) as AddressForm) : null;
-    const billing = billingRaw ? (JSON.parse(billingRaw) as AddressForm) : null;
+    const shipping = parseAddressFromStorage("lk_shipping_address");
+    const billing = parseAddressFromStorage("lk_billing_address");
     return billing || shipping || emptyAddress();
   });
+
+  useEffect(() => {
+    const shipping = parseAddressFromStorage("lk_shipping_address");
+    if (!isCheckoutAddressComplete(shipping)) {
+      router.replace("/checkout/shipping");
+    }
+  }, [router]);
 
   useEffect(() => {
     const loadCart = async () => {

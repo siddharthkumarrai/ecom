@@ -106,7 +106,7 @@ const SECTION_SHORT: Record<SectionType, string> = {
 };
 
 const SECTION_HINT: Record<SectionType, string> = {
-  announcement_bar: "Controls the live top strip text and visibility.",
+  announcement_bar: "Controls live top strip text, color, typography, animation, and visibility.",
   navbar: "Controls live header store name, browser title, favicon, and navbar background color.",
   hero_carousel: "Main hero carousel with slide links/images and optional right-side stack of 3 admin-selected product cards.",
   promo_tiles: "Legacy promo stack. Hero now has its own right-side product stack; use this block only outside Hero row.",
@@ -288,7 +288,18 @@ function newSection(type: SectionType, categorySlug?: string): SectionRow {
         },
       };
     case "announcement_bar":
-      return { ...base, config: { text: "" } };
+      return {
+        ...base,
+        config: {
+          text: "",
+          textColor: "#5f6368",
+          fontSize: 11,
+          fontWeight: "500",
+          fontStyle: "normal",
+          textTransform: "none",
+          animation: "marquee",
+        },
+      };
     case "footer":
       return {
         ...base,
@@ -3094,7 +3105,90 @@ function SectionConfigForm({
         </div>
       );
     case "announcement_bar":
-      return <div className="mt-3">{text("text", "Banner text (updates live top strip on Save)")}</div>;
+      return (
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="md:col-span-2">
+            {text("text", "Banner text (updates live top strip on Save)")}
+          </div>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-slate-700">Text color</span>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                className="h-10 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1"
+                value={colorPickerValue(c.textColor, "#5f6368")}
+                onChange={(event) => onChange({ textColor: event.target.value })}
+              />
+              <input
+                className={FORM_CONTROL}
+                value={String(c.textColor ?? "")}
+                onChange={(event) => onChange({ textColor: event.target.value })}
+                placeholder="#5f6368"
+              />
+            </div>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-slate-700">Font size (px)</span>
+            <input
+              type="number"
+              min={9}
+              max={24}
+              className={cn(FORM_CONTROL, "max-w-xs")}
+              value={c.fontSize === undefined || c.fontSize === null ? "" : String(c.fontSize)}
+              onChange={(event) => onChange({ fontSize: event.target.value === "" ? undefined : Number(event.target.value) })}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-slate-700">Font weight</span>
+            <select
+              className={cn(FORM_CONTROL, "cursor-pointer")}
+              value={String(c.fontWeight ?? "500")}
+              onChange={(event) => onChange({ fontWeight: event.target.value })}
+            >
+              <option value="400">Regular (400)</option>
+              <option value="500">Medium (500)</option>
+              <option value="600">Semibold (600)</option>
+              <option value="700">Bold (700)</option>
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-slate-700">Font style</span>
+            <select
+              className={cn(FORM_CONTROL, "cursor-pointer")}
+              value={String(c.fontStyle ?? "normal")}
+              onChange={(event) => onChange({ fontStyle: event.target.value })}
+            >
+              <option value="normal">Normal</option>
+              <option value="italic">Italic</option>
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-slate-700">Text transform</span>
+            <select
+              className={cn(FORM_CONTROL, "cursor-pointer")}
+              value={String(c.textTransform ?? "none")}
+              onChange={(event) => onChange({ textTransform: event.target.value })}
+            >
+              <option value="none">None</option>
+              <option value="uppercase">UPPERCASE</option>
+              <option value="capitalize">Capitalize</option>
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-slate-700">Text animation</span>
+            <select
+              className={cn(FORM_CONTROL, "cursor-pointer")}
+              value={String(c.animation ?? "marquee")}
+              onChange={(event) => onChange({ animation: event.target.value })}
+            >
+              <option value="none">None</option>
+              <option value="marquee">Marquee</option>
+              <option value="pulse">Pulse</option>
+              <option value="fade">Fade</option>
+            </select>
+          </label>
+        </div>
+      );
     default:
       return <p className="mt-3 text-sm text-slate-600">No extra fields for this section type.</p>;
   }

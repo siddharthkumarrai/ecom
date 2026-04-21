@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckoutStepper } from "@/components/store/checkout/CheckoutStepper";
+import { isCheckoutAddressComplete, normalizeCheckoutAddress } from "@/lib/checkout/address";
 
 declare global {
   interface Window {
@@ -37,6 +38,20 @@ export default function PaymentPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    let shippingAddress: ReturnType<typeof normalizeCheckoutAddress> | null = null;
+    try {
+      const raw = localStorage.getItem("lk_shipping_address");
+      shippingAddress = raw ? normalizeCheckoutAddress(JSON.parse(raw)) : null;
+    } catch {
+      shippingAddress = null;
+    }
+    if (!isCheckoutAddressComplete(shippingAddress)) {
+      router.replace("/checkout/shipping");
+    }
+  }, [router]);
+
+  useEffect(() => {
     const loadCart = async () => {
       try {
         const couponQuery = couponCode ? `?couponCode=${encodeURIComponent(couponCode)}` : "";
@@ -67,19 +82,21 @@ export default function PaymentPage() {
     try {
       const raw = localStorage.getItem("lk_shipping_address");
       const billingRaw = localStorage.getItem("lk_billing_address");
-      const shippingAddress = raw ? (JSON.parse(raw) as Record<string, string>) : null;
-      const billingAddress = billingRaw ? (JSON.parse(billingRaw) as Record<string, string>) : shippingAddress;
-      if (!shippingAddress?.name || !shippingAddress?.line1 || !shippingAddress?.phone || !shippingAddress?.city || !shippingAddress?.pincode) {
+      const shippingAddress = raw ? normalizeCheckoutAddress(JSON.parse(raw)) : null;
+      if (!isCheckoutAddressComplete(shippingAddress)) {
         setError("Please complete shipping address first.");
+        router.push("/checkout/shipping");
         return;
       }
+      const confirmedShippingAddress = normalizeCheckoutAddress(shippingAddress);
+      const billingAddress = billingRaw ? normalizeCheckoutAddress(JSON.parse(billingRaw)) : confirmedShippingAddress;
 
       const res = await fetch("/api/v1/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          shippingAddress,
+          shippingAddress: confirmedShippingAddress,
           billingAddress,
           paymentMethod: method,
           couponCode: couponCode || undefined,
@@ -146,9 +163,9 @@ export default function PaymentPage() {
             },
           },
           prefill: {
-            name: shippingAddress.name,
+            name: confirmedShippingAddress.name,
             email: "",
-            contact: shippingAddress.phone,
+            contact: confirmedShippingAddress.phone,
           },
           theme: { color: "#F5C400" },
         });

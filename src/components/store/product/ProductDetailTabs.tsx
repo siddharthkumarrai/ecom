@@ -69,9 +69,9 @@ export function ProductDetailTabs({ product, slug }: { product: Product; slug: s
   const descriptionBlocks = parseDescriptionBlocks(product.description || "");
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white">
-      <div className="overflow-x-auto border-b border-zinc-200 md:overflow-visible">
-        <div className="flex min-w-max items-center gap-1 px-3 pt-2 md:min-w-0 md:flex-wrap md:justify-center">
+    <section className="border-t border-zinc-200 bg-white">
+      <div className="overflow-x-auto border-b border-zinc-200">
+        <div className="flex min-w-max items-center gap-3 px-1 pt-1.5 md:min-w-0 md:gap-5">
           {[
             { id: "description", label: "Description" },
             { id: "specification", label: "Specification" },
@@ -83,7 +83,7 @@ export function ProductDetailTabs({ product, slug }: { product: Product; slug: s
               type="button"
               onClick={() => setTab(item.id as TabKey)}
               className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition ${
-                tab === item.id ? "border-brand-yellow font-semibold text-zinc-900" : "border-transparent text-zinc-500"
+                tab === item.id ? "border-brand-yellow font-semibold text-zinc-900" : "border-transparent text-zinc-500 hover:text-zinc-700"
               }`}
             >
               {item.label}
@@ -91,9 +91,9 @@ export function ProductDetailTabs({ product, slug }: { product: Product; slug: s
           ))}
         </div>
       </div>
-      <div className="p-4 md:p-6">
+      <div className="px-1 py-4 md:py-5">
         {tab === "description" ? (
-          <div className="rounded-xl border border-zinc-200 p-4 md:p-6">
+          <div className="rounded-lg border border-zinc-200 p-4 md:p-5">
             {richDescription && hasStructuredRichHtml ? (
               <article
                 className="rich-product-description [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-xl [&_h3]:font-semibold [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_p]:text-sm [&_p]:leading-7 [&_p]:text-zinc-700 [&_strong]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:my-1 [&_li]:text-sm [&_li]:leading-7 [&_li]:text-zinc-700"
@@ -131,7 +131,7 @@ export function ProductDetailTabs({ product, slug }: { product: Product; slug: s
           </div>
         ) : null}
         {tab === "specification" ? (
-          <div className="overflow-hidden rounded-xl border border-zinc-200">
+          <div className="overflow-hidden rounded-lg border border-zinc-200">
             {specifications.length ? (
               <table className="min-w-full divide-y divide-zinc-200 text-sm">
                 <tbody className="divide-y divide-zinc-200">

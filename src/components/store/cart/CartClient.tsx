@@ -86,6 +86,7 @@ export function CartClient() {
     );
 
   const quantityById = new Map((data?.cart?.items ?? []).map((item) => [item.product, item.quantity]));
+  const products = data?.totals?.products ?? [];
   const subtotal = data?.totals?.subtotal ?? 0;
   const discountAmount = data?.totals?.discountAmount ?? 0;
   const shippingCharge = data?.totals?.shippingCharge ?? 0;
@@ -148,7 +149,56 @@ export function CartClient() {
   return (
     <>
       <div className="mt-4 rounded border border-zinc-200 bg-white p-4">
-        <div className="overflow-x-auto">
+        <div className="space-y-3 md:hidden">
+          {products.map((product) => {
+            const qty = quantityById.get(product.id) ?? 0;
+            const rowBusy = removingProductId === product.id || updatingProductId === product.id;
+            return (
+              <div key={product.id} className="rounded border border-zinc-200 bg-zinc-50 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    {product.image ? <Image src={product.image} alt={product.name} width={48} height={48} className="h-12 w-12 rounded object-cover" /> : null}
+                    <p className="line-clamp-2 text-sm font-semibold text-zinc-800">{product.name}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(product.id)}
+                    disabled={rowBusy}
+                    className="rounded-full bg-rose-500 px-3 py-1 text-[11px] font-semibold text-white hover:bg-rose-600 disabled:opacity-60"
+                  >
+                    {removingProductId === product.id ? "..." : "Remove"}
+                  </button>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <div className="inline-flex items-center gap-1 rounded border border-zinc-200 bg-white px-1 py-1">
+                    <button
+                      type="button"
+                      disabled={rowBusy || qty <= 1}
+                      onClick={() => updateQuantity(product.id, qty - 1)}
+                      className="h-7 w-7 rounded border border-zinc-300 bg-white text-sm font-semibold text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      -
+                    </button>
+                    <span className="inline-flex min-w-8 items-center justify-center text-sm font-semibold text-zinc-800">{qty}</span>
+                    <button
+                      type="button"
+                      disabled={rowBusy}
+                      onClick={() => updateQuantity(product.id, qty + 1)}
+                      className="h-7 w-7 rounded border border-zinc-300 bg-white text-sm font-semibold text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="text-right text-xs text-zinc-700">
+                    <p>Price: Rs.{product.unitPrice}</p>
+                    <p className="text-sm font-bold text-zinc-900">Total: Rs.{(product.unitPrice * qty).toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b text-left text-xs uppercase tracking-wide text-zinc-500">
@@ -160,7 +210,7 @@ export function CartClient() {
               </tr>
             </thead>
             <tbody>
-              {(data?.totals?.products ?? []).map((product) => {
+              {products.map((product) => {
                 const qty = quantityById.get(product.id) ?? 0;
                 const rowBusy = removingProductId === product.id || updatingProductId === product.id;
                 return (
@@ -210,11 +260,11 @@ export function CartClient() {
             </tbody>
           </table>
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <Link href="/category/all" className="text-sm font-medium text-brand-yellow hover:underline">
             Return to shop
           </Link>
-          <div className="text-right text-sm">
+          <div className="text-sm sm:text-right">
             <p>Subtotal: <span className="font-semibold">Rs.{subtotal}</span></p>
             <p>Coupon Discount: <span className="font-semibold text-emerald-700">-Rs.{discountAmount}</span></p>
             <p>Subtotal after discount: <span className="font-semibold">Rs.{discountedSubtotal}</span></p>
@@ -223,15 +273,15 @@ export function CartClient() {
             <p className="text-base font-bold">Total: Rs.{data?.totals?.total ?? discountedSubtotal + taxAmount + shippingCharge}</p>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
-            className="h-9 rounded border border-zinc-300 px-3 text-sm"
+            className="h-9 w-full rounded border border-zinc-300 px-3 text-sm sm:w-auto"
             placeholder="Enter coupon code"
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
           />
           <button
-            className="h-9 rounded bg-zinc-900 px-4 text-xs font-semibold text-white"
+            className="h-9 rounded bg-zinc-900 px-4 text-xs font-semibold text-white sm:w-auto"
             onClick={() => {
               const normalized = couponCode.trim().toUpperCase();
               setAppliedCoupon(normalized);
@@ -246,7 +296,7 @@ export function CartClient() {
           {couponMessage ? <p className="text-xs text-zinc-600">{couponMessage}</p> : null}
         </div>
       </div>
-      <Link href="/checkout/shipping" className="mt-6 inline-flex rounded bg-brand-yellow px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-[#ffd84d]">
+      <Link href="/checkout/shipping" className="mt-6 inline-flex w-full justify-center rounded bg-brand-yellow px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-[#ffd84d] sm:w-auto">
         Continue to Shipping
       </Link>
     </>

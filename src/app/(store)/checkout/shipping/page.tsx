@@ -5,6 +5,31 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckoutStepper } from "@/components/store/checkout/CheckoutStepper";
 import Image from "next/image";
+import { isCheckoutAddressComplete, normalizeCheckoutAddress } from "@/lib/checkout/address";
+
+type AddressForm = {
+  name: string;
+  phone: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+};
+
+function emptyAddress(): AddressForm {
+  return {
+    name: "",
+    phone: "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    pincode: "",
+    country: "India",
+  };
+}
 
 type CartSummary = {
   cart?: { items: Array<{ product: string; quantity: number }> };
@@ -31,57 +56,21 @@ export default function ShippingPage() {
   const [cartData, setCartData] = useState<CartSummary | null>(null);
   const [cartLoading, setCartLoading] = useState(true);
   const [cartError, setCartError] = useState("");
+  const [addressError, setAddressError] = useState("");
   const [removingProductId, setRemovingProductId] = useState("");
-  const [form, setForm] = useState(() => {
+  const [form, setForm] = useState<AddressForm>(() => {
     if (typeof window === "undefined") {
-      return {
-        name: "",
-        phone: "",
-        line1: "",
-        line2: "",
-        city: "",
-        state: "",
-        pincode: "",
-        country: "India",
-      };
+      return emptyAddress();
     }
     try {
       const local = window.localStorage.getItem("lk_shipping_address");
       if (local) {
-        const parsed = JSON.parse(local) as Partial<{
-          name: string;
-          phone: string;
-          line1: string;
-          line2: string;
-          city: string;
-          state: string;
-          pincode: string;
-          country: string;
-        }>;
-        return {
-          name: parsed.name ?? "",
-          phone: parsed.phone ?? "",
-          line1: parsed.line1 ?? "",
-          line2: parsed.line2 ?? "",
-          city: parsed.city ?? "",
-          state: parsed.state ?? "",
-          pincode: parsed.pincode ?? "",
-          country: parsed.country ?? "India",
-        };
+        return normalizeCheckoutAddress(JSON.parse(local));
       }
     } catch {
       // Ignore malformed localStorage value and fallback to defaults.
     }
-    return {
-      name: "",
-      phone: "",
-      line1: "",
-      line2: "",
-      city: "",
-      state: "",
-      pincode: "",
-      country: "India",
-    };
+    return emptyAddress();
   });
 
   useEffect(() => {
@@ -105,6 +94,12 @@ export default function ShippingPage() {
     };
     loadDefaultAddress();
   }, [form.line1, form.pincode, form.phone]);
+
+  useEffect(() => {
+    if (addressError && isCheckoutAddressComplete(form)) {
+      setAddressError("");
+    }
+  }, [addressError, form]);
 
   useEffect(() => {
     const loadCart = async () => {
@@ -151,9 +146,16 @@ export default function ShippingPage() {
   };
 
   const onContinue = () => {
-    localStorage.setItem("lk_shipping_address", JSON.stringify(form));
+    const normalizedForm = normalizeCheckoutAddress(form);
+    if (!isCheckoutAddressComplete(normalizedForm)) {
+      setAddressError("Please complete shipping address before continuing.");
+      return;
+    }
+    setAddressError("");
+    localStorage.setItem("lk_shipping_address", JSON.stringify(normalizedForm));
     router.push("/checkout/billing");
   };
+  const cartProducts = cartData?.totals?.products ?? [];
 
   return (
     <main className="space-y-4">
@@ -169,7 +171,39 @@ export default function ShippingPage() {
           <p className="mt-4 text-sm text-rose-600">{cartError}</p>
         ) : (
           <>
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-4 space-y-3 md:hidden">
+              {cartProducts.map((item) => {
+                const qty = cartData?.cart?.items?.find((cartItem) => cartItem.product === item.id)?.quantity ?? 0;
+                const taxPercent = (cartData?.totals?.taxPercent ?? 18) / 100;
+                const lineTax = item.unitPrice * qty * taxPercent;
+                const lineTotal = item.unitPrice * qty + lineTax;
+                return (
+                  <div key={item.id} className="rounded border border-zinc-200 bg-zinc-50 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        {item.image ? <Image src={item.image} alt={item.name} width={52} height={52} className="rounded object-cover" /> : null}
+                        <p className="line-clamp-2 text-sm font-semibold text-zinc-800">{item.name}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeItem(item.id)}
+                        disabled={removingProductId === item.id}
+                        className="rounded-full bg-rose-500 px-3 py-1 text-[11px] font-semibold text-white hover:bg-rose-600 disabled:opacity-60"
+                      >
+                        {removingProductId === item.id ? "..." : "Remove"}
+                      </button>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-zinc-700">
+                      <p>Qty: <span className="font-semibold">{qty}</span></p>
+                      <p className="text-right">Price: <span className="font-semibold">Rs.{item.unitPrice}</span></p>
+                      <p>Tax: <span className="font-semibold">Rs.{lineTax.toFixed(2)}</span></p>
+                      <p className="text-right text-sm text-zinc-900">Total: <span className="font-bold">Rs.{lineTotal.toFixed(2)}</span></p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 hidden overflow-x-auto md:block">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase tracking-wide text-zinc-500">
@@ -219,7 +253,7 @@ export default function ShippingPage() {
                 </tbody>
               </table>
             </div>
-            <div className="mt-4 text-right text-sm text-zinc-700">
+            <div className="mt-4 text-sm text-zinc-700 sm:text-right">
               <p>
                 Subtotal: <span className="font-semibold">Rs.{cartData?.totals?.subtotal ?? 0}</span>
               </p>
@@ -282,7 +316,7 @@ export default function ShippingPage() {
             <input className="w-full rounded border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-700" placeholder="Country" value={form.country} onChange={(e) => setForm((p) => ({ ...p, country: e.target.value }))} />
           </label>
         </div>
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/cart" className="text-sm font-medium text-brand-yellow hover:underline">
             Return to cart
           </Link>
@@ -293,6 +327,7 @@ export default function ShippingPage() {
             Continue to Billing
           </button>
         </div>
+        {addressError ? <p className="mt-3 text-sm font-medium text-rose-600">{addressError}</p> : null}
       </section>
     </main>
   );

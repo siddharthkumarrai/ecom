@@ -25,7 +25,15 @@ export type BaseSectionConfig<T extends SectionType, C extends Record<string, un
 
 export type AnnouncementBarSectionConfig = BaseSectionConfig<
   "announcement_bar",
-  { text?: string }
+  {
+    text?: string;
+    textColor?: string;
+    fontSize?: number;
+    fontWeight?: string;
+    fontStyle?: string;
+    textTransform?: string;
+    animation?: string;
+  }
 >;
 export type NavbarSectionConfig = BaseSectionConfig<
   "navbar",

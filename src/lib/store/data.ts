@@ -479,6 +479,11 @@ type DbSiteConfig = {
     pageBg?: string;
     announcementBg?: string;
     announcementText?: string;
+    announcementFontSize?: number;
+    announcementFontWeight?: string;
+    announcementFontStyle?: string;
+    announcementTextTransform?: string;
+    announcementAnimation?: string;
     navbarBg?: string;
     navbarText?: string;
     navbarIconColor?: string;
@@ -720,6 +725,11 @@ function toSimpleConfigFromDb(config: DbSiteConfig) {
       pageBg: config.appearance?.pageBg ?? "#f7f7f7",
       announcementBg: config.appearance?.announcementBg ?? "#ffffff",
       announcementText: config.appearance?.announcementText ?? "#5f6368",
+      announcementFontSize: config.appearance?.announcementFontSize ?? 11,
+      announcementFontWeight: config.appearance?.announcementFontWeight ?? "500",
+      announcementFontStyle: config.appearance?.announcementFontStyle ?? "normal",
+      announcementTextTransform: config.appearance?.announcementTextTransform ?? "none",
+      announcementAnimation: config.appearance?.announcementAnimation ?? "marquee",
       navbarBg: config.appearance?.navbarBg ?? "#f5c400",
       navbarText: config.appearance?.navbarText ?? "#1f2937",
       navbarIconColor: config.appearance?.navbarIconColor ?? "#1f2937",
@@ -1082,7 +1092,7 @@ export async function getProductBySlugOrMock(slug: string) {
   try {
     await connectDB();
     const item = await Product.findOne({ slug, isActive: true })
-      .populate("brand", "name slug")
+      .populate("brand", "name slug logo")
       .populate("category", "slug")
       .select(
         "name slug partNumber images brand category basePrice costPrice salePrice isOnSale stock averageRating reviewCount description richDescription specifications technicalDocuments"
@@ -1110,6 +1120,10 @@ export async function getProductBySlugOrMock(slug: string) {
         brandName:
           typeof (item as { brand?: unknown }).brand === "object" && (item as { brand?: { name?: string } }).brand?.name
             ? String((item as { brand?: { name?: string } }).brand?.name)
+            : "",
+        brandLogo:
+          typeof (item as { brand?: unknown }).brand === "object" && (item as { brand?: { logo?: string } }).brand?.logo
+            ? String((item as { brand?: { logo?: string } }).brand?.logo)
             : "",
         image: Array.isArray((item as { images?: unknown[] }).images) && typeof (item as { images?: unknown[] }).images?.[0] === "string" ? String((item as { images?: unknown[] }).images?.[0]) : "",
         images: Array.isArray((item as { images?: unknown[] }).images) ? (item as { images?: unknown[] }).images?.filter((img): img is string => typeof img === "string") ?? [] : [],

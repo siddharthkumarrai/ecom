@@ -21,6 +21,7 @@ export interface Product {
   categorySlug: string;
   brandSlug: string;
   brandName?: string;
+  brandLogo?: string;
   image: string;
   images?: string[];
   costPrice?: number;
@@ -77,6 +78,11 @@ export interface SiteConfig {
     pageBg: string;
     announcementBg: string;
     announcementText: string;
+    announcementFontSize: number;
+    announcementFontWeight: string;
+    announcementFontStyle: string;
+    announcementTextTransform: string;
+    announcementAnimation: string;
     navbarBg: string;
     navbarText: string;
     navbarIconColor: string;
