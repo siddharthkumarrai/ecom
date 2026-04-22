@@ -3,6 +3,8 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { Product } from "@/lib/store/types";
 import { RatingStars } from "@/components/store/product/RatingStars";
+import { AnimatedCartButton } from "@/components/store/product/AnimatedCartButton";
+import { CompareToggleButton } from "@/components/store/compare/CompareToggleButton";
 import { WishlistHeartButton } from "@/components/store/wishlist/WishlistHeartButton";
 
 interface CategoryProductsCatalogProps {
@@ -98,12 +100,23 @@ export function CategoryProductsCatalog({
                       <div className="mt-auto pt-1.5">
                         {product.stock > 0 && product.stock < 5 ? (
                           <p className="text-[11px] font-semibold text-rose-600">{product.stock} left in stock</p>
+                        ) : product.stock <= 0 ? (
+                          <p className="text-[11px] font-semibold text-rose-600">Out of stock</p>
                         ) : (
                           <p className="text-[11px] text-zinc-500">Category: {categorySlug.toUpperCase()}</p>
                         )}
                       </div>
                     </div>
                   </Link>
+                  <div className="flex items-center justify-between border-t border-zinc-200 px-2 pb-2 pt-1.5 sm:px-2.5 sm:pb-2.5 sm:pt-2">
+                    <CompareToggleButton productId={product.id} variant="inline" />
+                    <AnimatedCartButton
+                      ariaLabel={`Add ${product.name} to cart`}
+                      productId={product.id}
+                      className="h-8 w-16 shrink-0 lg:h-9 lg:w-[72px]"
+                      iconClassName="h-[16px] w-[36px] lg:h-[19px] lg:w-[44px]"
+                    />
+                  </div>
                 </article>
               );
             })}

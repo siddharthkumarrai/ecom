@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth/requireUser";
 import { connectDB } from "@/lib/db/mongoose";
 import { User } from "@/lib/db/models/User.model";
 import AddressManager from "@/components/store/account/AddressManager";
+import { ManageProfileForm } from "@/components/store/account/ManageProfileForm";
 
 export default async function ProfilePage() {
   const { config } = await getSiteConfigOrMock();
@@ -19,10 +20,44 @@ export default async function ProfilePage() {
     country?: string;
     isDefault?: boolean;
   }> = [];
+  let initialName = "";
+  let initialPhone = "";
+  let initialSalesCode = "";
+  let initialProfileImageUrl = "";
 
   if (user?._id) {
     await connectDB();
-    const dbUser = await User.findById(user._id).select("addresses").lean();
+    const dbUser = await User.findById(user._id)
+      .select("addresses name phone salesCode profileImageUrl")
+      .lean<{
+        name?: string;
+        phone?: string;
+        salesCode?: string;
+        profileImageUrl?: string;
+        addresses?: Array<{
+          _id?: unknown;
+          name?: string;
+          phone?: string;
+          line1?: string;
+          line2?: string;
+          city?: string;
+          state?: string;
+          pincode?: string;
+          country?: string;
+          isDefault?: boolean;
+        }>;
+      } | null>();
+    initialName = dbUser?.name ?? "";
+    initialPhone = dbUser?.phone ?? "";
+    initialSalesCode = dbUser?.salesCode ?? "";
+    const rawProfileDoc = await User.collection.findOne(
+      { _id: user._id },
+      { projection: { profileImageUrl: 1 } }
+    ) as { profileImageUrl?: string } | null;
+    initialProfileImageUrl =
+      typeof rawProfileDoc?.profileImageUrl === "string"
+        ? rawProfileDoc.profileImageUrl
+        : (dbUser?.profileImageUrl ?? "");
     addresses =
       dbUser?.addresses?.map((a) => ({
         _id: String((a as { _id?: unknown })._id ?? ""),
@@ -43,23 +78,26 @@ export default async function ProfilePage() {
       <section className="rounded border border-zinc-200 bg-white p-3 sm:p-4">
         <h1 className="text-[32px] font-semibold leading-none sm:text-[44px]">{config.account.profile.heading}</h1>
         <h2 className="mt-4 text-lg font-semibold sm:mt-5 sm:text-xl">{config.account.profile.basicInfoHeading}</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-[180px_1fr] md:items-center">
-          <label className="text-sm text-zinc-600">{config.account.profile.yourNameLabel}</label>
-          <input className="h-9 w-full rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.yourNamePlaceholder} defaultValue="sidd" />
-          <label className="text-sm text-zinc-600">{config.account.profile.yourPhoneLabel}</label>
-          <input className="h-9 w-full rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.yourPhonePlaceholder} />
-          <label className="text-sm text-zinc-600">{config.account.profile.photoLabel}</label>
-          <input className="w-full rounded border border-zinc-300 px-3 py-1.5 text-sm" type="file" />
-          <label className="text-sm text-zinc-600">{config.account.profile.salesCodeLabel}</label>
-          <input className="h-9 w-full rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.salesCodePlaceholder} />
-          <label className="text-sm text-zinc-600">{config.account.profile.yourPasswordLabel}</label>
-          <input className="h-9 w-full rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.yourPasswordPlaceholder} />
-          <label className="text-sm text-zinc-600">{config.account.profile.confirmPasswordLabel}</label>
-          <input className="h-9 w-full rounded border border-zinc-300 px-3 text-sm" placeholder={config.account.profile.confirmPasswordPlaceholder} />
-        </div>
-        <div className="mt-4 flex justify-stretch sm:justify-end">
-          <button className="w-full rounded bg-brand-yellow px-4 py-2 text-sm font-semibold sm:w-auto">{config.account.profile.updateProfileButtonLabel}</button>
-        </div>
+        <ManageProfileForm
+          labels={{
+            yourNameLabel: config.account.profile.yourNameLabel,
+            yourNamePlaceholder: config.account.profile.yourNamePlaceholder,
+            yourPhoneLabel: config.account.profile.yourPhoneLabel,
+            yourPhonePlaceholder: config.account.profile.yourPhonePlaceholder,
+            photoLabel: config.account.profile.photoLabel,
+            salesCodeLabel: config.account.profile.salesCodeLabel,
+            salesCodePlaceholder: config.account.profile.salesCodePlaceholder,
+            yourPasswordLabel: config.account.profile.yourPasswordLabel,
+            yourPasswordPlaceholder: config.account.profile.yourPasswordPlaceholder,
+            confirmPasswordLabel: config.account.profile.confirmPasswordLabel,
+            confirmPasswordPlaceholder: config.account.profile.confirmPasswordPlaceholder,
+            updateProfileButtonLabel: config.account.profile.updateProfileButtonLabel,
+          }}
+          initialName={initialName}
+          initialPhone={initialPhone}
+          initialSalesCode={initialSalesCode}
+          initialProfileImageUrl={initialProfileImageUrl}
+        />
       </section>
 
       <section className="rounded border border-zinc-200 bg-white p-3 sm:p-4">

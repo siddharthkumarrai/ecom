@@ -22,13 +22,45 @@ const UpdateSchema = z.object({ addressId: z.string().min(1), address: AddressSc
 const RemoveSchema = z.object({ addressId: z.string().min(1) });
 const MAX_ADDRESSES = 4;
 
+type ClientAddress = {
+  _id: string;
+  name: string;
+  phone: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+  isDefault: boolean;
+};
+
+function toClientAddresses(addresses: unknown): ClientAddress[] {
+  if (!Array.isArray(addresses)) return [];
+  return addresses.map((item) => {
+    const record = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+    return {
+      _id: String(record._id ?? ""),
+      name: typeof record.name === "string" ? record.name : "",
+      phone: typeof record.phone === "string" ? record.phone : "",
+      line1: typeof record.line1 === "string" ? record.line1 : "",
+      line2: typeof record.line2 === "string" ? record.line2 : "",
+      city: typeof record.city === "string" ? record.city : "",
+      state: typeof record.state === "string" ? record.state : "",
+      pincode: typeof record.pincode === "string" ? record.pincode : "",
+      country: typeof record.country === "string" && record.country.trim() ? record.country : "India",
+      isDefault: Boolean(record.isDefault),
+    };
+  });
+}
+
 export async function GET() {
   const { user } = await requireUser();
   if (!user?._id) return error("Unauthorized", 401);
 
   await connectDB();
   const dbUser = await User.findById(user._id).select("addresses").lean();
-  return json({ addresses: dbUser?.addresses ?? [] });
+  return json({ addresses: toClientAddresses(dbUser?.addresses) });
 }
 
 export async function POST(req: Request) {
@@ -75,7 +107,7 @@ export async function POST(req: Request) {
   }
 
   const updated = await User.findById(user._id).select("addresses").lean();
-  return json({ ok: true, addresses: updated?.addresses ?? [] });
+  return json({ ok: true, addresses: toClientAddresses(updated?.addresses) });
 }
 
 export async function PATCH(req: Request) {
@@ -112,7 +144,7 @@ export async function PATCH(req: Request) {
   }
 
   const updated = await User.findById(user._id).select("addresses").lean();
-  return json({ ok: true, addresses: updated?.addresses ?? [] });
+  return json({ ok: true, addresses: toClientAddresses(updated?.addresses) });
 }
 
 export async function DELETE(req: Request) {
@@ -128,5 +160,5 @@ export async function DELETE(req: Request) {
   await User.updateOne({ _id: user._id }, { $pull: { addresses: { _id: parsed.data.addressId } } });
 
   const updated = await User.findById(user._id).select("addresses").lean();
-  return json({ ok: true, addresses: updated?.addresses ?? [] });
+  return json({ ok: true, addresses: toClientAddresses(updated?.addresses) });
 }

@@ -21,6 +21,7 @@ const UserSchema = new mongoose.Schema(
     email: { type: String, required: true, index: true },
     name: { type: String, default: "" },
     phone: { type: String, default: "" },
+    profileImageUrl: { type: String, default: "" },
     role: { type: String, enum: ["customer", "admin", "sales", "super_admin"], default: "customer", index: true },
     addresses: [AddressSchema],
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],

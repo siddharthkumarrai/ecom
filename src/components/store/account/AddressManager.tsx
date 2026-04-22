@@ -180,8 +180,8 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
 
       <div className="grid gap-3 md:grid-cols-2">
         {addresses.length ? (
-          addresses.map((a) => (
-            <div key={a._id} className="rounded border border-zinc-200 bg-white p-4">
+          addresses.map((a, index) => (
+            <div key={a._id || `address-${index}`} className="rounded border border-zinc-200 bg-white p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold text-zinc-900">{a.name}</p>
