@@ -6,7 +6,7 @@ import type { Category } from "@/lib/store/types";
 import { AllCategoryMenu } from "@/components/store/layout/AllCategoryMenu";
 import { SuperDealsMenu } from "@/components/store/layout/SuperDealsMenu";
 import { GitCompareArrows, Heart, Menu, Search, ShoppingBag, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Product } from "@/lib/store/types";
 import { getCompareProductIds } from "@/components/store/compare/compare-storage";
@@ -20,6 +20,10 @@ interface HeaderProps {
     navbarBg: string;
     navbarText: string;
     navbarIconColor: string;
+    cartButtonBg: string;
+    cartButtonHoverBg?: string;
+    cartButtonText: string;
+    cartBadgeBg: string;
   };
   navActions: {
     showCompare: boolean;
@@ -81,6 +85,15 @@ export function Header({
   const resolvedStoreName = String(branding.storeName || "").trim() || "lumenskart";
   const resolvedLogoUrl = String(branding.logoUrl || "").trim();
   const hasBrandLogo = Boolean(resolvedLogoUrl);
+  const cartButtonStyle = {
+    "--header-cart-bg": appearance.cartButtonBg || "#f5c400",
+    "--header-cart-hover-bg": appearance.cartButtonHoverBg || "#ffd84d",
+    color: appearance.cartButtonText || "#1f2937",
+  } as CSSProperties;
+  const cartBadgeStyle = {
+    backgroundColor: appearance.cartBadgeBg || "#2563eb",
+    color: "#ffffff",
+  } as CSSProperties;
   const categoryExists = (slug: string) => slug === "all" || categories.some((category) => category.slug === slug);
 
   useEffect(() => {
@@ -229,10 +242,14 @@ export function Header({
             </Link>
           ) : null}
           {navActions.showCart ? (
-            <Link href="/cart" className="inline-flex shrink-0 items-center gap-1.5 hover:opacity-90 md:ml-0" style={{ color: appearance.navbarIconColor }}>
+            <Link
+              href="/cart"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-900/10 bg-[var(--header-cart-bg)] px-2.5 py-1 transition-colors hover:bg-[var(--header-cart-hover-bg)] md:ml-0"
+              style={cartButtonStyle}
+            >
               <span className="relative inline-flex h-8 w-8 items-center justify-center">
                 <ShoppingBag size={16} />
-                <span className="absolute -right-2 -top-2 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                <span className="absolute -right-2 -top-2 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold" style={cartBadgeStyle}>
                   {cartCount}
                 </span>
               </span>

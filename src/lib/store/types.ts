@@ -86,6 +86,14 @@ export interface SiteConfig {
     navbarBg: string;
     navbarText: string;
     navbarIconColor: string;
+    cartButtonBg: string;
+    cartButtonHoverBg: string;
+    cartButtonText: string;
+    cartBadgeBg: string;
+    footerBg: string;
+    footerTopBg: string;
+    footerText: string;
+    footerMutedText: string;
     productActionButtonBg: string;
     productActionButtonHoverBg: string;
     contentPaddingMobile: number;

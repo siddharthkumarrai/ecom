@@ -60,7 +60,7 @@ export function ComparePageClient() {
         <h1 className="text-[44px] font-semibold leading-none">Compare Products</h1>
         <div className="mt-4 rounded border border-zinc-200 p-8 text-center">
           <p className="text-zinc-500">No products in compare list yet.</p>
-          <Link href="/" className="mt-4 inline-flex rounded bg-brand-yellow px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-[#ffd84d]">
+          <Link href="/" className="mt-4 inline-flex rounded bg-brand-yellow px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-brand-yellow-dark">
             Browse products
           </Link>
         </div>

@@ -3,7 +3,9 @@ import { error, json } from "@/lib/api/response";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { connectDB } from "@/lib/db/mongoose";
 import { Order } from "@/lib/db/models/Order.model";
+import { normalizeDeliveryStatus } from "@/lib/orders/deliveryStatus";
 import { getShippingProvider } from "@/lib/providers/shipping/ShiprocketProvider";
+import { isMockAWB } from "@/lib/providers/shipping/awb";
 
 const CreateSchema = z.object({ orderId: z.string().min(1) });
 const TrackSchema = z.object({
@@ -38,18 +40,20 @@ export async function POST(req: Request) {
   await connectDB();
   const order = await Order.findOne({ orderId: parsed.data.orderId });
   if (!order) return error("Order not found", 404);
-  if (order.shiprocketShipmentId) return json({ ok: true, item: order });
-  if (!(order.paymentStatus === "paid" || order.paymentMethod === "cod")) return error("Order payment not completed for shipment", 400);
+  if (order.shiprocketShipmentId && order.awbCode) return json({ ok: true, item: order });
+  if (order.deliveryStatus !== "confirmed") return error("Confirm order first", 400);
 
-  let shipment: { shipmentId: string; awbCode: string };
   const shipping = getShippingProvider();
+  let shipment: Awaited<ReturnType<typeof shipping.createShipment>>;
   try {
     shipment = await shipping.createShipment({
       orderId: order.orderId,
       createdAt: order.createdAt,
+      customerEmail: "",
       shippingAddress: {
         name: order.shippingAddress.name,
         line1: order.shippingAddress.line1,
+        line2: order.shippingAddress.line2,
         city: order.shippingAddress.city,
         pincode: order.shippingAddress.pincode,
         state: order.shippingAddress.state,
@@ -61,51 +65,48 @@ export async function POST(req: Request) {
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         hsnCode: item.hsnCode,
+        productId: String(item.product ?? ""),
       })),
       paymentMethod: order.paymentMethod === "cod" ? "cod" : "prepaid",
+      subtotal: order.subtotal ?? order.totalAmount,
       totalAmount: order.totalAmount,
     });
   } catch (e) {
     return error("Failed to create shipment", 400, String(e));
   }
 
-  let trackingUrl = order.trackingUrl || "";
-  let courierName = order.courierName || "";
-  // Booking shipment is the admin "confirm" action.
-  let normalizedDeliveryStatus: string | null = "confirmed";
-  if (shipment.awbCode) {
-    try {
-      const tracking = await shipping.trackShipment({ awbCode: shipment.awbCode });
-      trackingUrl = tracking.trackingUrl || trackingUrl;
-      courierName = tracking.courierName || courierName;
-      normalizedDeliveryStatus = normalizeDeliveryStatus(tracking.status) ?? normalizedDeliveryStatus;
-    } catch {
-      // Shipment may need provider processing delay before first track call.
-    }
-  }
+  if (!shipment.success) return error("Failed to create shipment", 400, shipment.error || "Unknown error");
+
+  const nextTrackingUrl = shipment.awbCode && !isMockAWB(shipment.awbCode) ? order.trackingUrl || `https://shiprocket.co/tracking/${encodeURIComponent(shipment.awbCode)}` : "";
+  const nextCourierName = shipment.courier || order.courierName || (shipment.awbCode ? "Shiprocket" : "");
+  const nextDeliveryStatus: string = shipment.awbCode ? "shipped" : "confirmed";
+  let nextTrackingEvents = Array.isArray(order.trackingEvents) ? order.trackingEvents : [];
+
+  nextTrackingEvents = [
+    {
+      status: "Shipment Created",
+      activity: "Shipment created by admin",
+      location: "Warehouse",
+      eventTime: new Date(),
+    },
+    ...nextTrackingEvents,
+  ].slice(0, 30);
+
   const updated = await Order.findOneAndUpdate(
     { _id: order._id },
     {
       $set: {
-        shiprocketShipmentId: shipment.shipmentId,
+        shiprocketShipmentId: shipment.shiprocketShipmentId || shipment.shipmentId,
         awbCode: shipment.awbCode,
-        trackingUrl,
-        courierName,
-        deliveryStatus: normalizedDeliveryStatus ?? "confirmed",
-        trackingEvents: trackingUrl
-          ? [
-              {
-                status: normalizedDeliveryStatus ?? "confirmed",
-                activity: "Shipment booked by admin",
-                location: "",
-                eventTime: new Date(),
-              },
-            ]
-          : order.trackingEvents ?? [],
+        trackingUrl: nextTrackingUrl,
+        courierName: nextCourierName || "Shiprocket",
+        deliveryStatus: nextDeliveryStatus,
+        trackingEvents: nextTrackingEvents,
       },
     },
     { returnDocument: "after" }
   ).lean();
+
   return json({ ok: true, item: updated });
 }
 
@@ -119,97 +120,63 @@ export async function PATCH(req: Request) {
   await connectDB();
   const order = await Order.findOne({ orderId: parsed.data.orderId });
   if (!order) return error("Order not found", 404);
+
   if (parsed.data.mode === "manual") {
-    const nextAwb = String(parsed.data.awbCode ?? order.awbCode ?? "");
-    const nextCourier = String(parsed.data.courierName ?? order.courierName ?? "");
-    const nextTrackingUrl = String(parsed.data.trackingUrl ?? order.trackingUrl ?? "");
+    const nextAwb = typeof parsed.data.awbCode === "string" ? parsed.data.awbCode.trim() : order.awbCode || "";
+    const nextCourier = typeof parsed.data.courierName === "string" ? parsed.data.courierName.trim() : order.courierName || "";
+    const nextTrackingUrl = typeof parsed.data.trackingUrl === "string" ? parsed.data.trackingUrl.trim() : order.trackingUrl || "";
     const nextDeliveryStatus = parsed.data.deliveryStatus ?? order.deliveryStatus;
+
+    const updatePayload: Record<string, unknown> = {
+      awbCode: nextAwb,
+      courierName: nextCourier,
+      trackingUrl: isMockAWB(nextAwb) ? "" : nextTrackingUrl,
+      deliveryStatus: nextDeliveryStatus,
+    };
+
+    if (nextDeliveryStatus !== order.deliveryStatus) {
+      updatePayload.trackingEvents = [
+        {
+          status: nextDeliveryStatus,
+          activity: `Status updated manually to ${nextDeliveryStatus.replaceAll("_", " ")}`,
+          location: "Admin panel",
+          eventTime: new Date(),
+        },
+        ...(Array.isArray(order.trackingEvents) ? order.trackingEvents : []),
+      ].slice(0, 30);
+    }
+
     const updated = await Order.findOneAndUpdate(
       { _id: order._id },
       {
-        $set: {
-          awbCode: nextAwb,
-          courierName: nextCourier,
-          trackingUrl: nextTrackingUrl,
-          deliveryStatus: nextDeliveryStatus,
-          trackingEvents: [
-            {
-              status: nextDeliveryStatus,
-              activity: "Updated manually by admin",
-              location: "",
-              eventTime: new Date(),
-            },
-            ...(Array.isArray(order.trackingEvents) ? order.trackingEvents : []),
-          ].slice(0, 20),
-        },
+        $set: updatePayload,
       },
       { returnDocument: "after" }
     ).lean();
     return json({ ok: true, item: updated });
   }
-  if (!(order.paymentStatus === "paid" || order.paymentMethod === "cod")) return error("Order payment not completed for shipment", 400);
 
-  let awbCode = order.awbCode || "";
-  let shiprocketShipmentId = order.shiprocketShipmentId || "";
-  if (!awbCode && !shiprocketShipmentId) {
-    let shipment: { shipmentId: string; awbCode: string };
-    try {
-      shipment = await getShippingProvider().createShipment({
-        orderId: order.orderId,
-        createdAt: order.createdAt,
-        shippingAddress: {
-          name: order.shippingAddress.name,
-          line1: order.shippingAddress.line1,
-          city: order.shippingAddress.city,
-          pincode: order.shippingAddress.pincode,
-          state: order.shippingAddress.state,
-          phone: order.shippingAddress.phone,
-        },
-        items: order.items.map((item) => ({
-          name: item.name,
-          sku: item.sku,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          hsnCode: item.hsnCode,
-        })),
-        paymentMethod: order.paymentMethod === "cod" ? "cod" : "prepaid",
-        totalAmount: order.totalAmount,
-      });
-    } catch (e) {
-      return error("Failed to create shipment", 400, String(e));
-    }
-    awbCode = shipment.awbCode ?? "";
-    shiprocketShipmentId = shipment.shipmentId ?? "";
-  }
+  const awbCode = order.awbCode || "";
   if (!awbCode) return error("AWB not found for this order", 400);
 
   const shipping = getShippingProvider();
-  let tracking: {
-    trackingUrl: string;
-    courierName: string;
-    status: string;
-    events: Array<{ status: string; activity: string; location: string; eventTime?: string }>;
-  };
-  try {
-    tracking = await shipping.trackShipment({ awbCode });
-  } catch (e) {
-    return error("Failed to track shipment", 400, String(e));
-  }
+  const tracking = await shipping.trackShipment({ awbCode });
+  const mappedEvents = (tracking.events ?? []).map((event) => ({
+    status: event.status || "",
+    activity: event.description || event.activity || "",
+    location: event.location || "",
+    eventTime: event.eventTime ? new Date(event.eventTime) : new Date(),
+  }));
+
   const updated = await Order.findOneAndUpdate(
     { _id: order._id },
     {
       $set: {
-        shiprocketShipmentId: shiprocketShipmentId || order.shiprocketShipmentId,
-        awbCode,
-        trackingUrl: tracking.trackingUrl || order.trackingUrl,
+        trackingUrl: isMockAWB(awbCode) ? "" : tracking.trackingUrl || order.trackingUrl || `https://shiprocket.co/tracking/${encodeURIComponent(awbCode)}`,
         courierName: tracking.courierName || order.courierName,
-        deliveryStatus: normalizeDeliveryStatus(tracking.status) ?? order.deliveryStatus,
-        trackingEvents: (tracking.events ?? []).map((event) => ({
-          status: normalizeDeliveryStatus(event.status || event.activity || "") ?? order.deliveryStatus,
-          activity: event.activity || event.status || "",
-          location: event.location || "",
-          eventTime: event.eventTime ? new Date(event.eventTime) : undefined,
-        })),
+        deliveryStatus: normalizeDeliveryStatus(tracking.currentStatus || tracking.status) ?? order.deliveryStatus,
+        trackingEvents: mappedEvents.length > 0 ? mappedEvents : order.trackingEvents ?? [],
+        lastTrackingSyncAt: new Date(),
       },
     },
     { returnDocument: "after" }
@@ -218,14 +185,3 @@ export async function PATCH(req: Request) {
   return json({ ok: true, item: updated });
 }
 
-function normalizeDeliveryStatus(status: string) {
-  const normalized = status.toLowerCase();
-  if (normalized.includes("delivered")) return "delivered";
-  if (normalized.includes("out for delivery")) return "out_for_delivery";
-  if (normalized.includes("shipped")) return "shipped";
-  if (normalized.includes("cancel")) return "cancelled";
-  if (normalized.includes("return")) return "returned";
-  if (normalized.includes("process")) return "processing";
-  if (normalized.includes("confirm")) return "confirmed";
-  return null;
-}

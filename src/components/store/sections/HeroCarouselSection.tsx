@@ -14,12 +14,18 @@ export async function HeroCarouselSection({ section, siteConfig }: SectionRender
             ctaLabel: String(slide.ctaLabel ?? slide.cta ?? ""),
             ctaHref: String(slide.ctaHref ?? slide.link ?? slide.href ?? "/"),
             imageUrl: String(slide.imageUrl ?? slide.image ?? ""),
+            ctaButtonBg: String(slide.ctaButtonBg ?? ""),
+            ctaButtonHoverBg: String(slide.ctaButtonHoverBg ?? ""),
+            ctaButtonText: String(slide.ctaButtonText ?? ""),
           };
         })
         .filter((slide) => Boolean(slide.title || slide.subtitle || slide.ctaLabel || slide.imageUrl))
     : [];
   const slides = slidesFromConfig.length ? slidesFromConfig : siteConfig.homepage.heroCarousel.slides;
   const autoplayMs = Number(section.config.autoplayMs || siteConfig.homepage.heroCarousel.autoplayMs);
+  const ctaButtonBg = String(section.config.ctaButtonBg ?? "");
+  const ctaButtonHoverBg = String(section.config.ctaButtonHoverBg ?? "");
+  const ctaButtonText = String(section.config.ctaButtonText ?? "");
   const sideCardsFromConfig = Array.isArray(section.config.sideCards)
     ? section.config.sideCards.map((item) => {
         const card = (item ?? {}) as Record<string, unknown>;
@@ -66,6 +72,9 @@ export async function HeroCarouselSection({ section, siteConfig }: SectionRender
         slides={slides}
         sideCards={resolvedSideCards}
         autoplayMs={autoplayMs}
+        ctaButtonBg={ctaButtonBg}
+        ctaButtonHoverBg={ctaButtonHoverBg}
+        ctaButtonText={ctaButtonText}
       />
     </div>
   );

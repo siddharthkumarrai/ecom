@@ -24,7 +24,18 @@ export function ProductDetailClient({
   const stock = product.stock ?? 0;
   const maxQty = Math.max(0, Math.min(9999, stock));
   const isOutOfStock = maxQty <= 0;
-  const buttonStyle = { "--pdp-btn-bg": buttonBg, "--pdp-btn-hover-bg": buttonHoverBg } as CSSProperties;
+  const buttonStyle = {
+    "--pdp-btn-bg": buttonBg,
+    "--pdp-btn-hover-bg": buttonHoverBg,
+  } as CSSProperties;
+  const outlineButtonStyle = {
+    borderColor: buttonBg,
+    color: buttonBg,
+  } as CSSProperties;
+  const solidButtonStyle = {
+    backgroundColor: buttonBg,
+    color: "#18181b",
+  } as CSSProperties;
 
   const updateQty = (next: number) => {
     if (isOutOfStock) return;
@@ -72,7 +83,8 @@ export function ProductDetailClient({
             <button
               type="button"
               onClick={() => router.push("/category/all")}
-              className="mt-6 rounded-full border border-brand-yellow px-5 py-2 text-sm font-semibold text-brand-yellow hover:bg-brand-yellow/10"
+              style={outlineButtonStyle}
+              className="mt-6 rounded-full border px-5 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
             >
               Back to shopping
             </button>
@@ -88,14 +100,16 @@ export function ProductDetailClient({
               <button
                 type="button"
                 onClick={() => setSuccessModal(null)}
-                className="rounded bg-brand-yellow px-6 py-2 text-sm font-semibold text-zinc-900 hover:bg-[#ffd84d]"
+                style={solidButtonStyle}
+                className="rounded px-6 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
               >
                 Back to shopping
               </button>
               <button
                 type="button"
                 onClick={() => router.push(successModal === "buy" ? "/checkout/shipping" : "/cart")}
-                className="rounded bg-brand-yellow px-6 py-2 text-sm font-semibold text-zinc-900 hover:bg-[#ffd84d]"
+                style={solidButtonStyle}
+                className="rounded px-6 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
               >
                 {successModal === "buy" ? "Proceed to Checkout" : "Proceed to Checkout"}
               </button>
@@ -116,7 +130,13 @@ export function ProductDetailClient({
       <div className="mt-2 space-y-2">
         <p className="text-[13px] font-medium text-zinc-600">Quantity</p>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => updateQty(qty - 1)} className="h-6 w-6 rounded-sm border border-zinc-300 bg-brand-yellow text-sm font-semibold disabled:opacity-60" disabled={isOutOfStock}>
+          <button
+            type="button"
+            onClick={() => updateQty(qty - 1)}
+            style={solidButtonStyle}
+            className="h-6 w-6 rounded-sm border border-zinc-300 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+            disabled={isOutOfStock}
+          >
             -
           </button>
           <input
@@ -125,7 +145,13 @@ export function ProductDetailClient({
             className="w-20 rounded-sm border border-zinc-300 px-2 py-1 text-center text-sm"
             disabled={isOutOfStock}
           />
-          <button type="button" onClick={() => updateQty(qty + 1)} className="h-6 w-6 rounded-sm border border-zinc-300 bg-brand-yellow text-sm font-semibold disabled:opacity-60" disabled={isOutOfStock}>
+          <button
+            type="button"
+            onClick={() => updateQty(qty + 1)}
+            style={solidButtonStyle}
+            className="h-6 w-6 rounded-sm border border-zinc-300 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+            disabled={isOutOfStock}
+          >
             +
           </button>
           <span className="text-xs text-zinc-500">({isOutOfStock ? "0" : `${product.stock}`} available)</span>

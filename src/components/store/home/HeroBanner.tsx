@@ -12,6 +12,9 @@ interface HeroBannerProps {
     ctaLabel: string;
     ctaHref: string;
     imageUrl?: string;
+    ctaButtonBg?: string;
+    ctaButtonHoverBg?: string;
+    ctaButtonText?: string;
   }>;
   sideCards?: Array<{
     title: string;
@@ -21,6 +24,9 @@ interface HeroBannerProps {
     imageUrl?: string;
   }>;
   autoplayMs?: number;
+  ctaButtonBg?: string;
+  ctaButtonHoverBg?: string;
+  ctaButtonText?: string;
 }
 
 function renderFlippingTitleWords(title: string, isActive: boolean) {
@@ -58,6 +64,9 @@ export function HeroBanner({
   slides,
   sideCards,
   autoplayMs = 4200,
+  ctaButtonBg = "#f5c400",
+  ctaButtonHoverBg = "#ffd84d",
+  ctaButtonText = "#1f2937",
 }: HeroBannerProps) {
   const cards = sideCards ?? [];
 
@@ -112,6 +121,24 @@ export function HeroBanner({
     setDragStartX(null);
     setDragDeltaX(0);
   };
+
+  useEffect(() => {
+    // Handle hero CTA button hover effects
+    const wrappers = document.querySelectorAll<HTMLDivElement>(".hero-cta-wrapper");
+    wrappers.forEach((wrapper) => {
+      const link = wrapper.querySelector<HTMLAnchorElement>(".hero-cta-link");
+      if (!link) return;
+      const bgColor = wrapper.dataset.bg || "#f5c400";
+      const hoverColor = wrapper.dataset.hover || "#ffd84d";
+      
+      link.addEventListener("mouseenter", () => {
+        link.style.backgroundColor = hoverColor;
+      });
+      link.addEventListener("mouseleave", () => {
+        link.style.backgroundColor = bgColor;
+      });
+    });
+  }, [computedSlides]);
 
   if (!computedSlides.length) {
     return null;
@@ -181,10 +208,14 @@ export function HeroBanner({
                             {slide.subtitle}
                           </p>
                         ) : null}
-                        <div className="mt-1.5 sm:mt-2.5 md:mt-6">
+                        <div className="mt-1.5 sm:mt-2.5 md:mt-6 hero-cta-wrapper" data-bg={slide.ctaButtonBg || ctaButtonBg} data-hover={slide.ctaButtonHoverBg || ctaButtonHoverBg}>
                           <Link
                             href={slide.ctaHref}
-                            className="inline-flex items-center justify-center rounded-[7px] bg-[#f5c400] px-2.5 py-1 text-[10px] font-medium text-zinc-900 transition hover:bg-[#ffd84d] sm:rounded-[10px] sm:px-3.5 sm:py-1.5 sm:text-[12px] md:min-w-[230px] md:px-8 md:py-3 md:text-[16px]"
+                            className="hero-cta-link inline-flex items-center justify-center rounded-[7px] px-2.5 py-1 text-[10px] font-medium transition sm:rounded-[10px] sm:px-3.5 sm:py-1.5 sm:text-[12px] md:min-w-[230px] md:px-8 md:py-3 md:text-[16px]"
+                            style={{
+                              backgroundColor: slide.ctaButtonBg || ctaButtonBg,
+                              color: slide.ctaButtonText || ctaButtonText,
+                            }}
                           >
                             {slide.ctaLabel}
                           </Link>

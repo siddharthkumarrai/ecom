@@ -4,8 +4,15 @@
   --background: #ffffff;
   --foreground: #171717;
   --lk-primary: #f5c400;
+  --lk-primary-hover: #ffd84d;
+  --lk-primary-rgb: 245 196 0;
+  --lk-primary-hover-rgb: 255 216 77;
   --lk-secondary: #1a1a1a;
   --lk-accent: #ff6b35;
+  --lk-cart-btn-bg: var(--lk-primary);
+  --lk-cart-btn-text: #1a1a1a;
+  --lk-cart-badge-bg: #2563eb;
+  --lk-cart-btn-hover: var(--lk-primary-hover);
 }
 
 @theme inline {
@@ -49,24 +56,24 @@ phantom-ui[loading] [role="button"] {
 }
 
 .cart-btn .cart-btn-bg {
-  fill: #f5c400 !important;
+  fill: var(--lk-cart-btn-bg, var(--lk-primary, #f5c400)) !important;
   transition: fill 0.2s;
 }
 
 .cart-btn .cart-btn-path {
   fill: none;
-  stroke: #1a1a1a !important;
+  stroke: var(--lk-cart-btn-text, #1a1a1a) !important;
   stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .cart-btn .cart-btn-dot {
-  fill: #1a1a1a !important;
+  fill: var(--lk-cart-btn-text, #1a1a1a) !important;
 }
 
 .cart-btn:hover .cart-btn-bg {
-  fill: #ffd84d !important;
+  fill: var(--lk-cart-btn-hover, var(--lk-primary-hover, #ffd84d)) !important;
 }
 
 .cart-btn:hover .cart-btn-cg {

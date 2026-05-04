@@ -170,7 +170,7 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
             type="button"
             onClick={addAddress}
             disabled={busy || !canAddMore}
-            className="rounded bg-[#f5c400] px-4 py-2 text-xs font-semibold text-zinc-900 hover:bg-[#ffd84d] disabled:opacity-60"
+            className="rounded bg-brand-yellow px-4 py-2 text-xs font-semibold text-zinc-900 hover:bg-brand-yellow-dark disabled:opacity-60"
           >
             {busy ? "Saving..." : canAddMore ? "Save Address" : "Address limit reached"}
           </button>

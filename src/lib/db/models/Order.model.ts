@@ -79,6 +79,7 @@ const OrderSchema = new mongoose.Schema(
     trackingUrl: { type: String },
     courierName: { type: String },
     trackingEvents: { type: [TrackingEventSchema], default: [] },
+    lastTrackingSyncAt: { type: Date },
 
     ipAddress: { type: String, default: "" },
     userAgent: { type: String, default: "" },

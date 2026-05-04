@@ -13,6 +13,7 @@ import {
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Copy, GripVertical, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import type { SectionType } from "@/lib/storefront/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,7 @@ const BTN_OUTLINE_SOLID = "border-slate-300 bg-white text-zinc-900 hover:bg-slat
 const SECTION_SHORT: Record<SectionType, string> = {
   announcement_bar: "Announcement bar",
   navbar: "Header",
+  theme_settings: "Themes",
   hero_carousel: "Hero",
   promo_tiles: "Promo tiles",
   featured_tabs: "Featured products",
@@ -107,7 +109,8 @@ const SECTION_SHORT: Record<SectionType, string> = {
 
 const SECTION_HINT: Record<SectionType, string> = {
   announcement_bar: "Controls live top strip text, color, typography, animation, and visibility.",
-  navbar: "Controls live header store name, browser title, favicon, and navbar background color.",
+  navbar: "Controls live header store name, browser title, and favicon. Use Themes for color controls.",
+  theme_settings: "Controls global theme colors: navbar, cart button, footer, and primary UI button colors.",
   hero_carousel: "Main hero carousel with slide links/images and optional right-side stack of 3 admin-selected product cards.",
   promo_tiles: "Legacy promo stack. Hero now has its own right-side product stack; use this block only outside Hero row.",
   featured_tabs: "Featured / On Sale / Top Rated tabs with admin-selected database products.",
@@ -133,6 +136,7 @@ const ADDABLE_TYPES: SectionType[] = [
   "newsletter_signup",
   "announcement_bar",
   "navbar",
+  "theme_settings",
   "footer",
 ];
 
@@ -144,6 +148,37 @@ const FIXED_FEATURED_TABS = [
 
 function normalizeOrders(list: SectionRow[]): SectionRow[] {
   return list.map((s, i) => ({ ...s, order: (i + 1) * 10 }));
+}
+
+/**
+ * LOCKED SECTION ORDER:
+ * 1. announcement_bar
+ * 2. navbar
+ * 3. theme_settings
+ * 4. hero_carousel
+ * 5. [all remaining sections, including duplicates]
+ * 6. footer
+ *
+ * Primary locked sections stay pinned. Extra duplicates remain visible in the editor
+ * so admins can remove them manually.
+ */
+function enforceLockedSectionOrder(list: SectionRow[]): SectionRow[] {
+  const LOCKED_HEADER = ["announcement_bar", "navbar", "theme_settings", "hero_carousel"] as const;
+  const LOCKED_FOOTER = ["footer"] as const;
+  const pinnedIds = new Set<string>();
+
+  const takeFirstByType = <T extends SectionRow["type"]>(type: T): SectionRow | null => {
+    const found = list.find((section) => section.type === type && !pinnedIds.has(section.id));
+    if (!found) return null;
+    pinnedIds.add(found.id);
+    return found;
+  };
+
+  const headerSections = LOCKED_HEADER.map((type) => takeFirstByType(type)).filter(Boolean) as SectionRow[];
+  const footerSections = LOCKED_FOOTER.map((type) => takeFirstByType(type)).filter(Boolean) as SectionRow[];
+  const remainingSections = list.filter((section) => !pinnedIds.has(section.id));
+
+  return normalizeOrders([...headerSections, ...remainingSections, ...footerSections]);
 }
 
 function stripLegacyPromoTiles(list: SectionRow[]): SectionRow[] {
@@ -255,6 +290,25 @@ function newSection(type: SectionType, categorySlug?: string): SectionRow {
           navbarBg: "#f5c400",
         },
       };
+    case "theme_settings":
+      return {
+        ...base,
+        config: {
+          navbarBg: "#f5c400",
+          navbarText: "#1f2937",
+          navbarIconColor: "#1f2937",
+          cartButtonBg: "#f5c400",
+          cartButtonHoverBg: "#ffd84d",
+          cartButtonText: "#1f2937",
+          cartBadgeBg: "#2563eb",
+          footerBg: "#f6f6f6",
+          footerTopBg: "#f5c400",
+          footerText: "#27272a",
+          footerMutedText: "#71717a",
+          productActionButtonBg: "#f5c400",
+          productActionButtonHoverBg: "#ffd84d",
+        },
+      };
     case "newsletter_signup":
       return { ...base, config: { text: "", placeholder: "Email address", buttonText: "Sign Up" } };
     case "top_categories_grid":
@@ -336,6 +390,8 @@ function summary(section: SectionRow): string {
       return `${String(c.title || "")} · ${String(c.categorySlug || "")}`.trim() || "—";
     case "navbar":
       return `${String(c.storeName || "Store name")} · ${String(c.storeTitle || "Store title")} · ${String(c.navbarBg || "#f5c400")}`;
+    case "theme_settings":
+      return `Primary ${String(c.productActionButtonBg || "#f5c400")} · Navbar ${String(c.navbarBg || "#f5c400")}`;
     case "brand_banner":
       return String(c.desktopImageUrl || c.mobileImageUrl || c.imageUrl || "Image banner");
     case "week_deals": {
@@ -375,7 +431,7 @@ function summary(section: SectionRow): string {
 }
 
 function isHeaderType(s: SectionRow) {
-  return s.type === "announcement_bar" || s.type === "navbar";
+  return s.type === "announcement_bar" || s.type === "navbar" || s.type === "theme_settings";
 }
 
 function isFooterType(s: SectionRow) {
@@ -434,14 +490,16 @@ export function HomepageSectionsEditor() {
       const prodJson = (await prodRes.json()) as { items?: ProductApiItem[] };
       const raw = Array.isArray(secJson.sections) ? secJson.sections : [];
       setSections(
-        stripLegacyPromoTiles(
-          raw.map((row) => ({
-            id: String(row.id),
-            type: row.type as SectionType,
-            order: Number(row.order) || 0,
-            enabled: row.enabled !== false,
-            config: (row.config && typeof row.config === "object" ? row.config : {}) as Record<string, unknown>,
-          }))
+        enforceLockedSectionOrder(
+          stripLegacyPromoTiles(
+            raw.map((row) => ({
+              id: String(row.id),
+              type: row.type as SectionType,
+              order: Number(row.order) || 0,
+              enabled: row.enabled !== false,
+              config: (row.config && typeof row.config === "object" ? row.config : {}) as Record<string, unknown>,
+            }))
+          )
         )
       );
       setCategories(
@@ -513,7 +571,7 @@ export function HomepageSectionsEditor() {
       document.activeElement.blur();
     }
     await new Promise((r) => setTimeout(r, 40));
-    const normalized = stripLegacyPromoTiles(normalizeOrders(sectionsRef.current));
+    const normalized = enforceLockedSectionOrder(stripLegacyPromoTiles(normalizeOrders(sectionsRef.current)));
     setSaving(true);
     setStatus("Saving…");
     try {
@@ -546,7 +604,8 @@ export function HomepageSectionsEditor() {
       const oldIndex = ordered.findIndex((i) => i.id === active.id);
       const newIndex = ordered.findIndex((i) => i.id === over.id);
       if (oldIndex < 0 || newIndex < 0) return items;
-      return normalizeOrders(arrayMove(ordered, oldIndex, newIndex));
+      const reordered = arrayMove(ordered, oldIndex, newIndex);
+      return enforceLockedSectionOrder(reordered);
     });
   };
 
@@ -559,11 +618,17 @@ export function HomepageSectionsEditor() {
       order: row.order + 5,
       config: JSON.parse(JSON.stringify(row.config)) as Record<string, unknown>,
     };
-    setSections(normalizeOrders([...sorted, clone]));
+    setSections(enforceLockedSectionOrder([...sorted, clone]));
+    toast.success(`Duplicated "${SECTION_SHORT[row.type]}"`);
+    setStatus(`✓ Duplicated "${SECTION_SHORT[row.type]}"`);
+    setTimeout(() => setStatus(""), 2000);
   };
 
   const remove = (id: string) => {
-    setSections(normalizeOrders(sorted.filter((s) => s.id !== id)));
+    const row = sorted.find((s) => s.id === id);
+    if (!row) return;
+    setSections(enforceLockedSectionOrder(sorted.filter((s) => s.id !== id)));
+    toast.success(`Removed "${SECTION_SHORT[row.type]}"`);
     if (editingId === id) setEditingId(null);
   };
 
@@ -584,14 +649,16 @@ export function HomepageSectionsEditor() {
       const data = (await res.json()) as { sections?: SectionRow[] };
       const raw = Array.isArray(data.sections) ? data.sections : [];
       setSections(
-        stripLegacyPromoTiles(
-          raw.map((row) => ({
-            id: String(row.id),
-            type: row.type as SectionType,
-            order: Number(row.order) || 0,
-            enabled: row.enabled !== false,
-            config: (row.config && typeof row.config === "object" ? row.config : {}) as Record<string, unknown>,
-          }))
+        enforceLockedSectionOrder(
+          stripLegacyPromoTiles(
+            raw.map((row) => ({
+              id: String(row.id),
+              type: row.type as SectionType,
+              order: Number(row.order) || 0,
+              enabled: row.enabled !== false,
+              config: (row.config && typeof row.config === "object" ? row.config : {}) as Record<string, unknown>,
+            }))
+          )
         )
       );
       setStatus("Restored default layout.");
@@ -608,7 +675,7 @@ export function HomepageSectionsEditor() {
 
   const addSection = () => {
     const slug = categories[0]?.slug;
-    setSections(normalizeOrders([...sorted, newSection(addType, slug)]));
+    setSections(enforceLockedSectionOrder([...sorted, newSection(addType, slug)]));
   };
 
   return (
@@ -677,7 +744,10 @@ export function HomepageSectionsEditor() {
                           section={row}
                           groupLabel={groupLabelForIndex(sorted, index)}
                           onToggle={() => toggleEnabled(row.id)}
-                          onEdit={() => setEditingId(row.id)}
+                          onEdit={() => {
+                            setEditingId(row.id);
+                            toast.message(`Editing "${SECTION_SHORT[row.type]}"`);
+                          }}
                           onDuplicate={() => duplicate(row.id)}
                           onRemove={() => remove(row.id)}
                         />
@@ -912,6 +982,9 @@ type HeroSlideForm = {
   ctaLabel: string;
   ctaHref: string;
   imageUrl: string;
+  ctaButtonBg?: string;
+  ctaButtonHoverBg?: string;
+  ctaButtonText?: string;
 };
 
 type CmsImageUploadResult = { imageUrl?: string; error?: string };
@@ -938,6 +1011,9 @@ function parseHeroSlides(raw: unknown): HeroSlideForm[] {
       ctaLabel: String(o.ctaLabel ?? o.cta ?? ""),
       ctaHref: String(o.ctaHref ?? o.link ?? o.href ?? ""),
       imageUrl: String(o.imageUrl ?? o.image ?? ""),
+      ctaButtonBg: String(o.ctaButtonBg ?? ""),
+      ctaButtonHoverBg: String(o.ctaButtonHoverBg ?? ""),
+      ctaButtonText: String(o.ctaButtonText ?? ""),
     };
   });
 }
@@ -1035,6 +1111,41 @@ function HeroSlidesForm({ value, onChange }: { value: unknown; onChange: (slides
           <div className="grid gap-2 sm:grid-cols-2">
             <input className={FORM_CONTROL} value={slide.ctaLabel} onChange={(e) => setSlide(index, { ctaLabel: e.target.value })} placeholder="Button label" />
             <input className={FORM_CONTROL} value={slide.ctaHref} onChange={(e) => setSlide(index, { ctaHref: e.target.value })} placeholder="Button link" />
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-slate-700">Button background</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  className="h-9 w-12 cursor-pointer rounded-lg border border-slate-300 bg-white p-1"
+                  value={slide.ctaButtonBg || "#f5c400"}
+                  onChange={(e) => setSlide(index, { ctaButtonBg: e.target.value })}
+                />
+              </div>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-slate-700">Button hover</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  className="h-9 w-12 cursor-pointer rounded-lg border border-slate-300 bg-white p-1"
+                  value={slide.ctaButtonHoverBg || "#ffd84d"}
+                  onChange={(e) => setSlide(index, { ctaButtonHoverBg: e.target.value })}
+                />
+              </div>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-slate-700">Button text</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  className="h-9 w-12 cursor-pointer rounded-lg border border-slate-300 bg-white p-1"
+                  value={slide.ctaButtonText || "#1f2937"}
+                  onChange={(e) => setSlide(index, { ctaButtonText: e.target.value })}
+                />
+              </div>
+            </label>
           </div>
           <input className={FORM_CONTROL} value={slide.imageUrl} onChange={(e) => setSlide(index, { imageUrl: e.target.value })} placeholder="Image URL" />
           <div className="flex flex-wrap items-center gap-2">
@@ -2839,6 +2950,26 @@ function SectionConfigForm({
     </label>
   );
 
+  const colorField = (key: string, label: string, fallback: string) => (
+    <label className="block space-y-1">
+      <span className="text-xs font-medium text-slate-700">{label}</span>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          className="h-10 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1"
+          value={colorPickerValue(c[key], fallback)}
+          onChange={(event) => onChange({ [key]: event.target.value })}
+        />
+        <input
+          className={FORM_CONTROL}
+          value={String(c[key] ?? "")}
+          onChange={(event) => onChange({ [key]: event.target.value })}
+          placeholder={fallback}
+        />
+      </div>
+    </label>
+  );
+
   switch (section.type) {
     case "navbar":
       return (
@@ -2875,25 +3006,53 @@ function SectionConfigForm({
             </div>
             {navbarFaviconUploadError ? <p className="text-xs font-medium text-red-600">{navbarFaviconUploadError}</p> : null}
           </div>
-          <label className="block space-y-1">
-            <span className="text-xs font-medium text-slate-700">Navbar background color</span>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                className="h-10 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1"
-                value={colorPickerValue(c.navbarBg)}
-                onChange={(e) => onChange({ navbarBg: e.target.value })}
-              />
-              <input
-                className={FORM_CONTROL}
-                value={String(c.navbarBg ?? "")}
-                onChange={(e) => onChange({ navbarBg: e.target.value })}
-                placeholder="#f5c400"
-              />
-            </div>
-          </label>
           <p className="text-xs text-slate-500 md:col-span-2">
-            Saves to live header branding, browser title, favicon, and navbar background color.
+            Saves to live header branding, browser title, and favicon. Edit navbar color from the Themes section.
+          </p>
+        </div>
+      );
+    case "theme_settings":
+      return (
+        <div className="mt-3 space-y-4">
+          <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Navbar</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {colorField("navbarBg", "Navbar background", "#f5c400")}
+              {colorField("navbarText", "Navbar text", "#1f2937")}
+              {colorField("navbarIconColor", "Navbar icon color", "#1f2937")}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Cart button</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {colorField("cartButtonBg", "Cart button background", "#f5c400")}
+              {colorField("cartButtonHoverBg", "Cart button hover", "#ffd84d")}
+              {colorField("cartButtonText", "Cart button text", "#1f2937")}
+              {colorField("cartBadgeBg", "Cart badge background", "#2563eb")}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Footer</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {colorField("footerBg", "Footer background", "#f6f6f6")}
+              {colorField("footerTopBg", "Footer top strip background", "#f5c400")}
+              {colorField("footerText", "Footer primary text", "#27272a")}
+              {colorField("footerMutedText", "Footer muted text", "#71717a")}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">UI buttons</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {colorField("productActionButtonBg", "Primary button background", "#f5c400")}
+              {colorField("productActionButtonHoverBg", "Primary button hover", "#ffd84d")}
+            </div>
+          </div>
+
+          <p className="text-[11px] text-slate-500">
+            Saves to global storefront appearance settings used across homepage, header/cart, footer, and primary UI actions.
           </p>
         </div>
       );
@@ -3085,6 +3244,17 @@ function SectionConfigForm({
       return (
         <div className="mt-3 space-y-4">
           {num("autoplayMs", "Autoplay interval (ms)")}
+          <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Button colors</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {colorField("ctaButtonBg", "Button background", "#f5c400")}
+              {colorField("ctaButtonHoverBg", "Button hover", "#ffd84d")}
+              {colorField("ctaButtonText", "Button text", "#1f2937")}
+            </div>
+            <p className="mt-2 text-[11px] text-slate-500">
+              These colors apply to all CTA buttons in hero slides. Individual slides can override these values.
+            </p>
+          </div>
           <HeroSlidesForm value={c.slides} onChange={(slides) => onChange({ slides })} />
           <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Right-side product stack</p>

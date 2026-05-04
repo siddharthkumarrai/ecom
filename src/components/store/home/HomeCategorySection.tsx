@@ -48,7 +48,7 @@ export function HomeCategorySection({
       <div className="flex items-center justify-between px-3 py-2 md:px-4">
         <h2 className="text-[28px] font-medium uppercase text-zinc-800">{title}</h2>
       </div>
-      <div className="ml-3 h-[2px] w-20 bg-[#f5c400] md:ml-4" />
+      <div className="ml-3 h-[2px] w-20 bg-brand-yellow md:ml-4" />
       <div className={`grid gap-2 p-3 md:p-4 ${hasPromo ? "lg:grid-cols-[180px_minmax(0,1fr)_270px]" : "lg:grid-cols-[180px_minmax(0,1fr)]"}`}>
         <aside className="hidden lg:block">
           <div className="divide-y divide-zinc-200 border border-zinc-200 bg-white">

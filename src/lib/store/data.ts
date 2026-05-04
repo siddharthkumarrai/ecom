@@ -487,6 +487,14 @@ type DbSiteConfig = {
     navbarBg?: string;
     navbarText?: string;
     navbarIconColor?: string;
+    cartButtonBg?: string;
+    cartButtonHoverBg?: string;
+    cartButtonText?: string;
+    cartBadgeBg?: string;
+    footerBg?: string;
+    footerTopBg?: string;
+    footerText?: string;
+    footerMutedText?: string;
     productActionButtonBg?: string;
     productActionButtonHoverBg?: string;
     contentPaddingMobile?: number;
@@ -733,6 +741,14 @@ function toSimpleConfigFromDb(config: DbSiteConfig) {
       navbarBg: config.appearance?.navbarBg ?? "#f5c400",
       navbarText: config.appearance?.navbarText ?? "#1f2937",
       navbarIconColor: config.appearance?.navbarIconColor ?? "#1f2937",
+      cartButtonBg: config.appearance?.cartButtonBg ?? "#f5c400",
+      cartButtonHoverBg: config.appearance?.cartButtonHoverBg ?? "#ffd84d",
+      cartButtonText: config.appearance?.cartButtonText ?? "#1f2937",
+      cartBadgeBg: config.appearance?.cartBadgeBg ?? "#2563eb",
+      footerBg: config.appearance?.footerBg ?? "#f6f6f6",
+      footerTopBg: config.appearance?.footerTopBg ?? (config.appearance?.navbarBg ?? "#f5c400"),
+      footerText: config.appearance?.footerText ?? "#27272a",
+      footerMutedText: config.appearance?.footerMutedText ?? "#71717a",
       productActionButtonBg: config.appearance?.productActionButtonBg ?? "#f5c400",
       productActionButtonHoverBg: config.appearance?.productActionButtonHoverBg ?? "#ffd84d",
       contentPaddingMobile: config.appearance?.contentPaddingMobile ?? 24,

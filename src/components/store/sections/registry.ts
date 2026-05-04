@@ -3,6 +3,7 @@ import type { HomepageSection, SectionDataMap, SectionType } from "@/lib/storefr
 import type { ReactElement } from "react";
 import { AnnouncementBarSection } from "@/components/store/sections/AnnouncementBarSection";
 import { NavbarSection } from "@/components/store/sections/NavbarSection";
+import { ThemeSettingsSection } from "@/components/store/sections/ThemeSettingsSection";
 import { HeroCarouselSection } from "@/components/store/sections/HeroCarouselSection";
 import { PromoTilesSection } from "@/components/store/sections/PromoTilesSection";
 import { FeaturedTabsSection } from "@/components/store/sections/FeaturedTabsSection";
@@ -26,6 +27,7 @@ export type SectionComponent = (props: SectionRenderProps) => Promise<ReactEleme
 export const sectionRegistry: Record<SectionType, SectionComponent> = {
   announcement_bar: AnnouncementBarSection,
   navbar: NavbarSection,
+  theme_settings: ThemeSettingsSection,
   hero_carousel: HeroCarouselSection,
   promo_tiles: PromoTilesSection,
   featured_tabs: FeaturedTabsSection,

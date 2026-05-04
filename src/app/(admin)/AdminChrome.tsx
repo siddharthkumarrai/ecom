@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft, Bell, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "sonner";
 
 const links = [
   { href: "/admin/dashboard", label: "Dashboard" },
@@ -13,6 +14,7 @@ const links = [
   { href: "/admin/coupons", label: "Coupons" },
   { href: "/admin/cms/homepage", label: "Homepage" },
   { href: "/admin/shipping", label: "Delivery Charges" },
+  { href: "/admin/orders", label: "Orders" },
   { href: "/admin/tracking", label: "Tracking" },
   { href: "/admin/payments", label: "Payments" },
 ];
@@ -37,7 +39,10 @@ export function AdminChrome({ children }: { children: React.ReactNode }) {
           </Button>
           <span className="text-sm font-semibold text-slate-800">Homepage editor</span>
         </header>
-        <div className="min-h-0 flex-1 overflow-auto p-3 md:p-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-auto p-3 md:p-4">
+          {children}
+          <Toaster richColors position="top-right" />
+        </div>
       </div>
     );
   }
@@ -83,6 +88,7 @@ export function AdminChrome({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         {children}
+        <Toaster richColors position="top-right" />
       </main>
     </div>
   );

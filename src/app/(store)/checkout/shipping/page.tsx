@@ -322,7 +322,7 @@ export default function ShippingPage() {
           </Link>
           <button
             onClick={onContinue}
-            className="inline-flex items-center justify-center rounded bg-[#f5c400] px-5 py-2.5 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-[#ffd84d]"
+            className="inline-flex items-center justify-center rounded bg-brand-yellow px-5 py-2.5 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-brand-yellow-dark"
           >
             Continue to Billing
           </button>

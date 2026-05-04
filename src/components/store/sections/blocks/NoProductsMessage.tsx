@@ -14,7 +14,7 @@ export function NoProductsMessage({
       <p className="mt-1 text-sm text-zinc-500">Please check again later or explore.</p>
       <Link
         href={exploreHref}
-        className="mt-4 inline-flex rounded-full bg-brand-yellow px-5 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-[#ffd84d]"
+        className="mt-4 inline-flex rounded-full bg-brand-yellow px-5 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-brand-yellow-dark"
       >
         Explore products
       </Link>

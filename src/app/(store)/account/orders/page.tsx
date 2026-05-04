@@ -109,7 +109,7 @@ export default async function OrdersPage({ searchParams }: Props) {
                       <div className="space-y-1">
                         <Link
                           href={`/account/orders/${order.orderId}`}
-                          className="inline-flex items-center justify-center rounded bg-[#f5c400] px-3 py-1.5 text-xs font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-[#ffd84d]"
+                          className="inline-flex items-center justify-center rounded bg-brand-yellow px-3 py-1.5 text-xs font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-brand-yellow-dark"
                         >
                           Track Order
                         </Link>

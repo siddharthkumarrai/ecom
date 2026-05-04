@@ -222,7 +222,7 @@ export default function PaymentPage() {
           <Link href="/checkout/billing" className="text-sm font-medium text-brand-yellow hover:underline">
             Return to billing
           </Link>
-          <button onClick={placeOrder} disabled={loading} className="inline-flex rounded bg-brand-yellow px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-[#ffd84d] disabled:opacity-60">
+          <button onClick={placeOrder} disabled={loading} className="inline-flex rounded bg-brand-yellow px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-brand-yellow-dark disabled:opacity-60">
             {loading ? "Placing..." : "Place Order"}
           </button>
         </div>

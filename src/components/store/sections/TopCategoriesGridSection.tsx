@@ -32,7 +32,7 @@ export async function TopCategoriesGridSection({ section, siteConfig }: SectionR
             <Link
               key={category.id}
               href={`/category/${category.slug}`}
-              className="group flex min-h-[104px] min-w-[148px] snap-start items-center gap-3 border border-zinc-200 bg-white px-2.5 py-2.5 hover:border-[#f5c400] sm:min-h-[112px] sm:min-w-[176px] sm:px-3 sm:py-3 md:min-w-[212px]"
+              className="group flex min-h-[104px] min-w-[148px] snap-start items-center gap-3 border border-zinc-200 bg-white px-2.5 py-2.5 hover:border-brand-yellow sm:min-h-[112px] sm:min-w-[176px] sm:px-3 sm:py-3 md:min-w-[212px]"
             >
               <span className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded bg-[#f7f7f7] sm:h-16 sm:w-16">
                 <Image

@@ -8,7 +8,7 @@ export function NewsletterSignupSection({ section, siteConfig }: SectionRenderPr
   const buttonText = String(section.config.buttonText || siteConfig.footer.newsletterButtonText);
 
   return (
-    <section className="rounded-md bg-[#f5c400] px-4 py-4 md:px-6">
+    <section className="rounded-md bg-brand-yellow px-4 py-4 md:px-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <p className="text-sm font-semibold text-zinc-900">{text}</p>
         <div className="flex w-full items-center gap-2 md:w-auto">

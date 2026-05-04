@@ -30,6 +30,22 @@ function resolveAnnouncementEnum(value: unknown, allowed: Set<string>, fallback:
   return allowed.has(normalized) ? normalized : fallback;
 }
 
+function toRgbChannels(hex: string, fallback: string) {
+  const normalized = hex.trim().replace("#", "");
+  if (normalized.length === 3) {
+    const expanded = normalized.split("").map((ch) => `${ch}${ch}`).join("");
+    const int = Number.parseInt(expanded, 16);
+    if (Number.isNaN(int)) return fallback;
+    return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
+  }
+  if (normalized.length === 6) {
+    const int = Number.parseInt(normalized, 16);
+    if (Number.isNaN(int)) return fallback;
+    return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
+  }
+  return fallback;
+}
+
 export default async function StoreLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const isCmsStorePreview = cookieStore.get("cms_store_preview")?.value === "1";
@@ -46,6 +62,11 @@ export default async function StoreLayout({ children }: { children: ReactNode })
   const products = homeProductsResult.source === "db" ? homeProductsResult.products : [];
   const announcementSectionConfig = (() => {
     const section = config.homepage.sections?.find((entry) => entry.type === "announcement_bar");
+    if (!section?.config || typeof section.config !== "object" || Array.isArray(section.config)) return {} as Record<string, unknown>;
+    return section.config;
+  })();
+  const themeSectionConfig = (() => {
+    const section = config.homepage.sections?.find((entry) => entry.type === "theme_settings");
     if (!section?.config || typeof section.config !== "object" || Array.isArray(section.config)) return {} as Record<string, unknown>;
     return section.config;
   })();
@@ -74,10 +95,31 @@ export default async function StoreLayout({ children }: { children: ReactNode })
     ANNOUNCEMENT_ANIMATIONS,
     resolveAnnouncementEnum(config.appearance.announcementAnimation, ANNOUNCEMENT_ANIMATIONS, "marquee")
   );
+  const primaryHex = resolveHexColor(config.appearance.productActionButtonBg, "#f5c400");
+  const primaryHoverHex = resolveHexColor(config.appearance.productActionButtonHoverBg, "#ffd84d");
+  const cartButtonBgHex = resolveHexColor(themeSectionConfig.cartButtonBg ?? config.appearance.cartButtonBg, "#f5c400");
+  const cartButtonHoverHex = resolveHexColor(themeSectionConfig.cartButtonHoverBg ?? config.appearance.cartButtonHoverBg, "#ffd84d");
+  const cartButtonTextHex = resolveHexColor(themeSectionConfig.cartButtonText ?? config.appearance.cartButtonText, "#1f2937");
+  const cartBadgeBgHex = resolveHexColor(themeSectionConfig.cartBadgeBg ?? config.appearance.cartBadgeBg, "#2563eb");
+  const resolvedAppearance = {
+    ...config.appearance,
+    cartButtonBg: cartButtonBgHex,
+    cartButtonHoverBg: cartButtonHoverHex,
+    cartButtonText: cartButtonTextHex,
+    cartBadgeBg: cartBadgeBgHex,
+  };
   const layoutStyle = {
     backgroundColor: config.appearance.pageBg,
     "--content-px-mobile": `${config.appearance.contentPaddingMobile}px`,
     "--content-px-desktop": `${config.appearance.contentPaddingDesktop}px`,
+    "--lk-primary": primaryHex,
+    "--lk-primary-hover": primaryHoverHex,
+    "--lk-primary-rgb": toRgbChannels(primaryHex, "245 196 0"),
+    "--lk-primary-hover-rgb": toRgbChannels(primaryHoverHex, "255 216 77"),
+    "--lk-cart-btn-bg": cartButtonBgHex,
+    "--lk-cart-btn-text": cartButtonTextHex,
+    "--lk-cart-badge-bg": cartBadgeBgHex,
+    "--lk-cart-btn-hover": cartButtonHoverHex,
   } as CSSProperties;
 
   return (
@@ -100,7 +142,7 @@ export default async function StoreLayout({ children }: { children: ReactNode })
         supportPhone={config.nav.supportPhone}
         categories={categories}
         products={products}
-        appearance={config.appearance}
+        appearance={resolvedAppearance}
         navActions={config.navActions}
         topBarLinks={config.topBarLinks}
         allCategoryLabel={config.navigation.allCategoryLabel}
@@ -125,6 +167,12 @@ export default async function StoreLayout({ children }: { children: ReactNode })
         newsletterPlaceholder={config.footer.newsletterPlaceholder}
         newsletterButtonText={config.footer.newsletterButtonText}
         navbarBg={config.appearance.navbarBg}
+        footerBg={config.appearance.footerBg}
+        footerTopBg={config.appearance.footerTopBg}
+        footerText={config.appearance.footerText}
+        footerMutedText={config.appearance.footerMutedText}
+        uiButtonBg={config.appearance.productActionButtonBg}
+        uiButtonHoverBg={config.appearance.productActionButtonHoverBg}
         storeName={config.branding.storeName}
         logoUrl={config.branding.logoUrl}
       />

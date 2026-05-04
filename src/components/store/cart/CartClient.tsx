@@ -296,7 +296,7 @@ export function CartClient() {
           {couponMessage ? <p className="text-xs text-zinc-600">{couponMessage}</p> : null}
         </div>
       </div>
-      <Link href="/checkout/shipping" className="mt-6 inline-flex w-full justify-center rounded bg-brand-yellow px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-[#ffd84d] sm:w-auto">
+      <Link href="/checkout/shipping" className="mt-6 inline-flex w-full justify-center rounded bg-brand-yellow px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-brand-yellow-dark sm:w-auto">
         Continue to Shipping
       </Link>
     </>

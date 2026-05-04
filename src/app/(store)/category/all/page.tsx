@@ -35,7 +35,7 @@ export default async function AllCategoryPage() {
               <Link
                 key={category.id}
                 href={`/category/${category.slug}`}
-                className="group flex min-h-[92px] items-center gap-3 rounded border border-zinc-200 bg-white px-3 py-3 transition hover:border-[#f5c400]"
+                className="group flex min-h-[92px] items-center gap-3 rounded border border-zinc-200 bg-white px-3 py-3 transition hover:border-brand-yellow"
               >
                 <span className="relative inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-[#f7f7f7]">
                   <Image

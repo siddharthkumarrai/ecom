@@ -8,8 +8,8 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          yellow: "#F5C400",
-          "yellow-dark": "#D4A800",
+          yellow: "rgb(var(--lk-primary-rgb, 245 196 0) / <alpha-value>)",
+          "yellow-dark": "rgb(var(--lk-primary-hover-rgb, 255 216 77) / <alpha-value>)",
           orange: "#FF6B35",
           blue: "#0066CC",
           dark: "#1A1A1A",

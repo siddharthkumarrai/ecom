@@ -12,6 +12,7 @@ import type { SectionType } from "@/lib/storefront/types";
 const SECTION_TYPES: [SectionType, ...SectionType[]] = [
   "announcement_bar",
   "navbar",
+  "theme_settings",
   "hero_carousel",
   "promo_tiles",
   "featured_tabs",
@@ -167,13 +168,63 @@ function appendMissingAutoCategoryRows(
   return normalizeOrders(next);
 }
 
+function ensureThemeSettingsSection(
+  sections: SectionRow[],
+  config: {
+    navbarBg: string;
+    navbarText: string;
+    navbarIconColor: string;
+    cartButtonBg: string;
+    cartButtonHoverBg: string;
+    cartButtonText: string;
+    cartBadgeBg: string;
+    footerBg: string;
+    footerTopBg: string;
+    footerText: string;
+    footerMutedText: string;
+    productActionButtonBg: string;
+    productActionButtonHoverBg: string;
+  }
+): SectionRow[] {
+  if (sections.some((section) => section.type === "theme_settings")) return sections;
+  const next = [...sections];
+  const navbarIndex = next.findIndex((section) => section.type === "navbar");
+  const themeSection: SectionRow = {
+    id: "theme-settings",
+    type: "theme_settings",
+    order: 0,
+    enabled: true,
+    config: {
+      navbarBg: config.navbarBg,
+      navbarText: config.navbarText,
+      navbarIconColor: config.navbarIconColor,
+      cartButtonBg: config.cartButtonBg,
+      cartButtonHoverBg: config.cartButtonHoverBg,
+      cartButtonText: config.cartButtonText,
+      cartBadgeBg: config.cartBadgeBg,
+      footerBg: config.footerBg,
+      footerTopBg: config.footerTopBg,
+      footerText: config.footerText,
+      footerMutedText: config.footerMutedText,
+      productActionButtonBg: config.productActionButtonBg,
+      productActionButtonHoverBg: config.productActionButtonHoverBg,
+    },
+  };
+  if (navbarIndex >= 0) {
+    next.splice(navbarIndex + 1, 0, themeSection);
+  } else {
+    next.unshift(themeSection);
+  }
+  return normalizeOrders(next);
+}
+
 export async function GET() {
   const admin = await requireAdmin();
   if (!admin.ok) return error(admin.reason === "unauthorized" ? "Unauthorized" : "Not found", admin.reason === "unauthorized" ? 401 : 404);
 
   await connectDB();
   const doc = await SiteConfigModel.findOne({ key: "main" })
-    .select("homepage.sections announcement.messages branding.storeName branding.logoUrl seo.siteName seo.favicon appearance.navbarBg appearance.announcementText appearance.announcementFontSize appearance.announcementFontWeight appearance.announcementFontStyle appearance.announcementTextTransform appearance.announcementAnimation footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
+    .select("homepage.sections announcement.messages branding.storeName branding.logoUrl seo.siteName seo.favicon appearance.navbarBg appearance.navbarText appearance.navbarIconColor appearance.cartButtonBg appearance.cartButtonHoverBg appearance.cartButtonText appearance.cartBadgeBg appearance.footerBg appearance.footerTopBg appearance.footerText appearance.footerMutedText appearance.productActionButtonBg appearance.productActionButtonHoverBg appearance.announcementText appearance.announcementFontSize appearance.announcementFontWeight appearance.announcementFontStyle appearance.announcementTextTransform appearance.announcementAnimation footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
     .lean<{
       homepage?: { sections?: unknown[] };
       announcement?: { messages?: Array<{ text?: string }> };
@@ -181,6 +232,18 @@ export async function GET() {
       seo?: { siteName?: string; favicon?: string };
       appearance?: {
         navbarBg?: string;
+        navbarText?: string;
+        navbarIconColor?: string;
+        cartButtonBg?: string;
+        cartButtonHoverBg?: string;
+        cartButtonText?: string;
+        cartBadgeBg?: string;
+        footerBg?: string;
+        footerTopBg?: string;
+        footerText?: string;
+        footerMutedText?: string;
+        productActionButtonBg?: string;
+        productActionButtonHoverBg?: string;
         announcementText?: string;
         announcementFontSize?: number;
         announcementFontWeight?: string;
@@ -204,6 +267,18 @@ export async function GET() {
   const globalFavicon = typeof doc?.seo?.favicon === "string" ? doc.seo.favicon : "";
   const globalAnnouncementText = typeof doc?.announcement?.messages?.[0]?.text === "string" ? doc.announcement.messages[0].text : "";
   const globalNavbarBg = typeof doc?.appearance?.navbarBg === "string" ? doc.appearance.navbarBg : "";
+  const globalNavbarText = typeof doc?.appearance?.navbarText === "string" ? doc.appearance.navbarText : "#1f2937";
+  const globalNavbarIconColor = typeof doc?.appearance?.navbarIconColor === "string" ? doc.appearance.navbarIconColor : "#1f2937";
+  const globalCartButtonBg = typeof doc?.appearance?.cartButtonBg === "string" ? doc.appearance.cartButtonBg : "#f5c400";
+  const globalCartButtonHoverBg = typeof doc?.appearance?.cartButtonHoverBg === "string" ? doc.appearance.cartButtonHoverBg : "#ffd84d";
+  const globalCartButtonText = typeof doc?.appearance?.cartButtonText === "string" ? doc.appearance.cartButtonText : "#1f2937";
+  const globalCartBadgeBg = typeof doc?.appearance?.cartBadgeBg === "string" ? doc.appearance.cartBadgeBg : "#2563eb";
+  const globalFooterBg = typeof doc?.appearance?.footerBg === "string" ? doc.appearance.footerBg : "#f6f6f6";
+  const globalFooterTopBg = typeof doc?.appearance?.footerTopBg === "string" ? doc.appearance.footerTopBg : (globalNavbarBg || "#f5c400");
+  const globalFooterText = typeof doc?.appearance?.footerText === "string" ? doc.appearance.footerText : "#27272a";
+  const globalFooterMutedText = typeof doc?.appearance?.footerMutedText === "string" ? doc.appearance.footerMutedText : "#71717a";
+  const globalProductActionButtonBg = typeof doc?.appearance?.productActionButtonBg === "string" ? doc.appearance.productActionButtonBg : "#f5c400";
+  const globalProductActionButtonHoverBg = typeof doc?.appearance?.productActionButtonHoverBg === "string" ? doc.appearance.productActionButtonHoverBg : "#ffd84d";
   const globalAnnouncementTextColor = typeof doc?.appearance?.announcementText === "string" ? doc.appearance.announcementText : "#5f6368";
   const globalAnnouncementFontSize = typeof doc?.appearance?.announcementFontSize === "number"
     ? Math.max(9, Math.min(24, Math.round(doc.appearance.announcementFontSize)))
@@ -272,6 +347,23 @@ export async function GET() {
               favicon: String(baseConfig.favicon ?? globalFavicon ?? ""),
               navbarBg: String(baseConfig.navbarBg ?? globalNavbarBg ?? ""),
             }
+          : row.type === "theme_settings"
+          ? {
+              ...baseConfig,
+              navbarBg: String(baseConfig.navbarBg ?? globalNavbarBg ?? ""),
+              navbarText: String(baseConfig.navbarText ?? globalNavbarText ?? "#1f2937"),
+              navbarIconColor: String(baseConfig.navbarIconColor ?? globalNavbarIconColor ?? "#1f2937"),
+              cartButtonBg: String(baseConfig.cartButtonBg ?? globalCartButtonBg ?? "#f5c400"),
+              cartButtonHoverBg: String(baseConfig.cartButtonHoverBg ?? globalCartButtonHoverBg ?? "#ffd84d"),
+              cartButtonText: String(baseConfig.cartButtonText ?? globalCartButtonText ?? "#1f2937"),
+              cartBadgeBg: String(baseConfig.cartBadgeBg ?? globalCartBadgeBg ?? "#2563eb"),
+              footerBg: String(baseConfig.footerBg ?? globalFooterBg ?? "#f6f6f6"),
+              footerTopBg: String(baseConfig.footerTopBg ?? globalFooterTopBg ?? "#f5c400"),
+              footerText: String(baseConfig.footerText ?? globalFooterText ?? "#27272a"),
+              footerMutedText: String(baseConfig.footerMutedText ?? globalFooterMutedText ?? "#71717a"),
+              productActionButtonBg: String(baseConfig.productActionButtonBg ?? globalProductActionButtonBg ?? "#f5c400"),
+              productActionButtonHoverBg: String(baseConfig.productActionButtonHoverBg ?? globalProductActionButtonHoverBg ?? "#ffd84d"),
+            }
           : row.type === "footer"
             ? {
                 ...baseConfig,
@@ -312,9 +404,24 @@ export async function GET() {
     }))
     .filter((section) => section.categorySlug);
 
-  const mergedSections = rows.length
+  const mergedSectionsBase = rows.length
     ? appendMissingAutoCategoryRows(rows, autoCategorySections)
     : buildDefaultHomepageSections((await getSiteConfigOrMock()).config as SiteConfig, autoCategorySections);
+  const mergedSections = ensureThemeSettingsSection(mergedSectionsBase, {
+    navbarBg: globalNavbarBg || "#f5c400",
+    navbarText: globalNavbarText,
+    navbarIconColor: globalNavbarIconColor,
+    cartButtonBg: globalCartButtonBg,
+    cartButtonHoverBg: globalCartButtonHoverBg,
+    cartButtonText: globalCartButtonText,
+    cartBadgeBg: globalCartBadgeBg,
+    footerBg: globalFooterBg,
+    footerTopBg: globalFooterTopBg,
+    footerText: globalFooterText,
+    footerMutedText: globalFooterMutedText,
+    productActionButtonBg: globalProductActionButtonBg,
+    productActionButtonHoverBg: globalProductActionButtonHoverBg,
+  });
   return json({ sections: mergedSections });
 }
 
@@ -329,6 +436,7 @@ export async function PUT(req: Request) {
   await connectDB();
   const firstAnnouncementSection = parsed.data.sections.find((section) => section.type === "announcement_bar");
   const firstNavbarSection = parsed.data.sections.find((section) => section.type === "navbar");
+  const firstThemeSection = parsed.data.sections.find((section) => section.type === "theme_settings");
   const firstFooterSection = parsed.data.sections.find((section) => section.type === "footer");
   const announcementTextRaw = firstAnnouncementSection?.config?.text;
   const announcementText = typeof announcementTextRaw === "string" ? announcementTextRaw.trim() : "";
@@ -362,6 +470,32 @@ export async function PUT(req: Request) {
   const navbarFavicon = typeof navbarFaviconRaw === "string" ? navbarFaviconRaw.trim() : "";
   const navbarBgRaw = firstNavbarSection?.config?.navbarBg;
   const navbarBg = typeof navbarBgRaw === "string" ? navbarBgRaw.trim() : "";
+  const themeNavbarBgRaw = firstThemeSection?.config?.navbarBg;
+  const themeNavbarBg = typeof themeNavbarBgRaw === "string" ? themeNavbarBgRaw.trim() : "";
+  const themeNavbarTextRaw = firstThemeSection?.config?.navbarText;
+  const themeNavbarText = typeof themeNavbarTextRaw === "string" ? themeNavbarTextRaw.trim() : "";
+  const themeNavbarIconColorRaw = firstThemeSection?.config?.navbarIconColor;
+  const themeNavbarIconColor = typeof themeNavbarIconColorRaw === "string" ? themeNavbarIconColorRaw.trim() : "";
+  const themeCartButtonBgRaw = firstThemeSection?.config?.cartButtonBg;
+  const themeCartButtonBg = typeof themeCartButtonBgRaw === "string" ? themeCartButtonBgRaw.trim() : "";
+  const themeCartButtonHoverBgRaw = firstThemeSection?.config?.cartButtonHoverBg;
+  const themeCartButtonHoverBg = typeof themeCartButtonHoverBgRaw === "string" ? themeCartButtonHoverBgRaw.trim() : "";
+  const themeCartButtonTextRaw = firstThemeSection?.config?.cartButtonText;
+  const themeCartButtonText = typeof themeCartButtonTextRaw === "string" ? themeCartButtonTextRaw.trim() : "";
+  const themeCartBadgeBgRaw = firstThemeSection?.config?.cartBadgeBg;
+  const themeCartBadgeBg = typeof themeCartBadgeBgRaw === "string" ? themeCartBadgeBgRaw.trim() : "";
+  const themeFooterBgRaw = firstThemeSection?.config?.footerBg;
+  const themeFooterBg = typeof themeFooterBgRaw === "string" ? themeFooterBgRaw.trim() : "";
+  const themeFooterTopBgRaw = firstThemeSection?.config?.footerTopBg;
+  const themeFooterTopBg = typeof themeFooterTopBgRaw === "string" ? themeFooterTopBgRaw.trim() : "";
+  const themeFooterTextRaw = firstThemeSection?.config?.footerText;
+  const themeFooterText = typeof themeFooterTextRaw === "string" ? themeFooterTextRaw.trim() : "";
+  const themeFooterMutedTextRaw = firstThemeSection?.config?.footerMutedText;
+  const themeFooterMutedText = typeof themeFooterMutedTextRaw === "string" ? themeFooterMutedTextRaw.trim() : "";
+  const themeProductActionButtonBgRaw = firstThemeSection?.config?.productActionButtonBg;
+  const themeProductActionButtonBg = typeof themeProductActionButtonBgRaw === "string" ? themeProductActionButtonBgRaw.trim() : "";
+  const themeProductActionButtonHoverBgRaw = firstThemeSection?.config?.productActionButtonHoverBg;
+  const themeProductActionButtonHoverBg = typeof themeProductActionButtonHoverBgRaw === "string" ? themeProductActionButtonHoverBgRaw.trim() : "";
   const footerStoreNameRaw = firstFooterSection?.config?.storeName;
   const footerStoreName = typeof footerStoreNameRaw === "string" ? footerStoreNameRaw.trim() : "";
   const footerLogoUrlRaw = firstFooterSection?.config?.logoUrl;
@@ -384,9 +518,9 @@ export async function PUT(req: Request) {
     "homepage.sections": parsed.data.sections,
   };
 
-  if (firstAnnouncementSection || firstNavbarSection || firstFooterSection) {
+  if (firstAnnouncementSection || firstNavbarSection || firstThemeSection || firstFooterSection) {
       const existingDoc = await SiteConfigModel.findOne({ key: "main" })
-        .select("homepage.sections announcement.messages branding.storeName branding.logoUrl seo.siteName seo.favicon appearance.navbarBg appearance.announcementText appearance.announcementFontSize appearance.announcementFontWeight appearance.announcementFontStyle appearance.announcementTextTransform appearance.announcementAnimation footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
+        .select("homepage.sections announcement.messages branding.storeName branding.logoUrl seo.siteName seo.favicon appearance.navbarBg appearance.navbarText appearance.navbarIconColor appearance.cartButtonBg appearance.cartButtonHoverBg appearance.cartButtonText appearance.cartBadgeBg appearance.footerBg appearance.footerTopBg appearance.footerText appearance.footerMutedText appearance.productActionButtonBg appearance.productActionButtonHoverBg appearance.announcementText appearance.announcementFontSize appearance.announcementFontWeight appearance.announcementFontStyle appearance.announcementTextTransform appearance.announcementAnimation footer.columns footer.contactPhone footer.contactAddress footer.newsletterText footer.newsletterPlaceholder footer.newsletterButtonText footer.socialLinks")
         .lean<{
           homepage?: {
             sections?: Array<{
@@ -413,6 +547,18 @@ export async function PUT(req: Request) {
           };
           appearance?: {
             navbarBg?: string;
+            navbarText?: string;
+            navbarIconColor?: string;
+            cartButtonBg?: string;
+            cartButtonHoverBg?: string;
+            cartButtonText?: string;
+            cartBadgeBg?: string;
+            footerBg?: string;
+            footerTopBg?: string;
+            footerText?: string;
+            footerMutedText?: string;
+            productActionButtonBg?: string;
+            productActionButtonHoverBg?: string;
             announcementText?: string;
             announcementFontSize?: number;
             announcementFontWeight?: string;
@@ -543,10 +689,48 @@ export async function PUT(req: Request) {
         ? existingDoc.appearance.navbarBg.trim()
         : "";
       const currentNavbarBg = (existingSectionNavbarBg || existingGlobalNavbarBg || "").toLowerCase();
-      const nextNavbarBg = navbarBg.toLowerCase();
+      const nextNavbarBg = (themeNavbarBg || navbarBg).toLowerCase();
 
       if (HEX_COLOR_RE.test(navbarBg) && nextNavbarBg !== currentNavbarBg) {
-        setPatch["appearance.navbarBg"] = navbarBg;
+        setPatch["appearance.navbarBg"] = themeNavbarBg || navbarBg;
+      }
+    }
+
+    if (firstThemeSection) {
+      const updateColorField = (key: string, nextValue: string, currentValue: string) => {
+        if (HEX_COLOR_RE.test(nextValue) && nextValue.toLowerCase() !== currentValue.toLowerCase()) {
+          setPatch[key] = nextValue;
+        }
+      };
+
+      updateColorField("appearance.navbarBg", themeNavbarBg, String(existingDoc?.appearance?.navbarBg ?? ""));
+      updateColorField("appearance.navbarText", themeNavbarText, String(existingDoc?.appearance?.navbarText ?? "#1f2937"));
+      updateColorField("appearance.navbarIconColor", themeNavbarIconColor, String(existingDoc?.appearance?.navbarIconColor ?? "#1f2937"));
+      updateColorField("appearance.cartButtonBg", themeCartButtonBg, String(existingDoc?.appearance?.cartButtonBg ?? "#f5c400"));
+      updateColorField("appearance.cartButtonHoverBg", themeCartButtonHoverBg, String(existingDoc?.appearance?.cartButtonHoverBg ?? "#ffd84d"));
+      updateColorField("appearance.cartButtonText", themeCartButtonText, String(existingDoc?.appearance?.cartButtonText ?? "#1f2937"));
+      updateColorField("appearance.cartBadgeBg", themeCartBadgeBg, String(existingDoc?.appearance?.cartBadgeBg ?? "#2563eb"));
+      updateColorField("appearance.footerBg", themeFooterBg, String(existingDoc?.appearance?.footerBg ?? "#f6f6f6"));
+      updateColorField("appearance.footerTopBg", themeFooterTopBg, String(existingDoc?.appearance?.footerTopBg ?? "#f5c400"));
+      updateColorField("appearance.footerText", themeFooterText, String(existingDoc?.appearance?.footerText ?? "#27272a"));
+      updateColorField("appearance.footerMutedText", themeFooterMutedText, String(existingDoc?.appearance?.footerMutedText ?? "#71717a"));
+      updateColorField(
+        "appearance.productActionButtonBg",
+        themeProductActionButtonBg,
+        String(existingDoc?.appearance?.productActionButtonBg ?? "#f5c400")
+      );
+      updateColorField(
+        "appearance.productActionButtonHoverBg",
+        themeProductActionButtonHoverBg,
+        String(existingDoc?.appearance?.productActionButtonHoverBg ?? "#ffd84d")
+      );
+
+      // Keep global CSS variable seed aligned for UI accents used in globals.css.
+      if (HEX_COLOR_RE.test(themeProductActionButtonBg)) {
+        setPatch["appearance.productActionButtonBg"] = themeProductActionButtonBg;
+      }
+      if (HEX_COLOR_RE.test(themeProductActionButtonHoverBg)) {
+        setPatch["appearance.productActionButtonHoverBg"] = themeProductActionButtonHoverBg;
       }
     }
 

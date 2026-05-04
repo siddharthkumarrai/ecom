@@ -3,6 +3,7 @@ import type { Category, Product } from "@/lib/store/types";
 export type SectionType =
   | "announcement_bar"
   | "navbar"
+  | "theme_settings"
   | "hero_carousel"
   | "promo_tiles"
   | "featured_tabs"
@@ -44,6 +45,24 @@ export type NavbarSectionConfig = BaseSectionConfig<
     navbarBg?: string;
   }
 >;
+export type ThemeSettingsSectionConfig = BaseSectionConfig<
+  "theme_settings",
+  {
+    navbarBg?: string;
+    navbarText?: string;
+    navbarIconColor?: string;
+    cartButtonBg?: string;
+    cartButtonHoverBg?: string;
+    cartButtonText?: string;
+    cartBadgeBg?: string;
+    footerBg?: string;
+    footerTopBg?: string;
+    footerText?: string;
+    footerMutedText?: string;
+    productActionButtonBg?: string;
+    productActionButtonHoverBg?: string;
+  }
+>;
 export type HeroCarouselSectionConfig = BaseSectionConfig<
   "hero_carousel",
   {
@@ -60,6 +79,9 @@ export type HeroCarouselSectionConfig = BaseSectionConfig<
       imageUrl?: string;
       image?: string;
     }>;
+    ctaButtonBg?: string;
+    ctaButtonHoverBg?: string;
+    ctaButtonText?: string;
   }
 >;
 export type PromoTilesSectionConfig = BaseSectionConfig<
@@ -172,6 +194,7 @@ export type FooterSectionConfig = BaseSectionConfig<
 export type HomepageSection =
   | AnnouncementBarSectionConfig
   | NavbarSectionConfig
+  | ThemeSettingsSectionConfig
   | HeroCarouselSectionConfig
   | PromoTilesSectionConfig
   | FeaturedTabsSectionConfig

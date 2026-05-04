@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import { getProductBySlugOrMock } from "@/lib/store/data";
 import { RatingStars } from "@/components/store/product/RatingStars";
 import { ProductDetailClient } from "@/components/store/product/ProductDetailClient";
@@ -29,6 +30,10 @@ export default async function ProductPage({ params }: Props) {
     typeof product.costPrice === "number" && product.costPrice > product.price
       ? Math.round(((product.costPrice - product.price) / product.costPrice) * 100)
       : 0;
+  const actionButtonStyle = {
+    backgroundColor: config.appearance.productActionButtonBg,
+    color: "#18181b",
+  } as CSSProperties;
 
   return (
     <main className="-mx-[var(--content-px-mobile)] space-y-5 md:-mx-[var(--content-px-desktop)]">
@@ -66,7 +71,7 @@ export default async function ProductPage({ params }: Props) {
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
-            <button type="button" className="rounded-full bg-brand-yellow px-4 py-2 font-semibold text-zinc-900">
+            <button type="button" style={actionButtonStyle} className="rounded-full px-4 py-2 font-semibold transition-opacity hover:opacity-90">
               Message Seller
             </button>
             <WishlistHeartButton productId={product.id} variant="inline" />
