@@ -35,6 +35,13 @@ type ClientAddress = {
   isDefault: boolean;
 };
 
+function toObjectId(value: unknown): mongoose.Types.ObjectId | null {
+  if (value === null || value === undefined) return null;
+  const normalized = String(value).trim();
+  if (!normalized || !mongoose.isValidObjectId(normalized)) return null;
+  return new mongoose.Types.ObjectId(normalized);
+}
+
 function toClientAddresses(addresses: unknown): ClientAddress[] {
   if (!Array.isArray(addresses)) return [];
   return addresses.map((item) => {
@@ -56,16 +63,18 @@ function toClientAddresses(addresses: unknown): ClientAddress[] {
 
 export async function GET() {
   const { user } = await requireUser();
-  if (!user?._id) return error("Unauthorized", 401);
+  const userId = toObjectId(user?._id);
+  if (!userId) return error("Unauthorized", 401);
 
   await connectDB();
-  const dbUser = await User.findById(user._id).select("addresses").lean();
+  const dbUser = await User.findById(userId).select("addresses").lean();
   return json({ addresses: toClientAddresses(dbUser?.addresses) });
 }
 
 export async function POST(req: Request) {
   const { user } = await requireUser();
-  if (!user?._id) return error("Unauthorized", 401);
+  const userId = toObjectId(user?._id);
+  if (!userId) return error("Unauthorized", 401);
 
   const body = await req.json().catch(() => null);
   const parsed = CreateSchema.safeParse(body);
@@ -80,10 +89,10 @@ export async function POST(req: Request) {
     try {
       await session.withTransaction(async () => {
         if (address.isDefault) {
-          await User.updateOne({ _id: user._id }, { $set: { "addresses.$[].isDefault": false } }, { session });
+          await User.updateOne({ _id: userId }, { $set: { "addresses.$[].isDefault": false } }, { session });
         }
         const pushResult = await User.updateOne(
-          { _id: user._id, [`addresses.${MAX_ADDRESSES - 1}`]: { $exists: false } },
+          { _id: userId, [`addresses.${MAX_ADDRESSES - 1}`]: { $exists: false } },
           { $push: { addresses: address } },
           { session },
         );
@@ -106,28 +115,30 @@ export async function POST(req: Request) {
     return error(`You can save up to ${MAX_ADDRESSES} addresses only.`, 400);
   }
 
-  const updated = await User.findById(user._id).select("addresses").lean();
+  const updated = await User.findById(userId).select("addresses").lean();
   return json({ ok: true, addresses: toClientAddresses(updated?.addresses) });
 }
 
 export async function PATCH(req: Request) {
   const { user } = await requireUser();
-  if (!user?._id) return error("Unauthorized", 401);
+  const userId = toObjectId(user?._id);
+  if (!userId) return error("Unauthorized", 401);
 
   const body = await req.json().catch(() => null);
   const parsed = UpdateSchema.safeParse(body);
   if (!parsed.success) return error("Invalid payload", 400, parsed.error.flatten());
-  if (!mongoose.isValidObjectId(parsed.data.addressId)) return error("Invalid addressId", 400);
+  const addressObjectId = toObjectId(parsed.data.addressId);
+  if (!addressObjectId) return error("Invalid addressId", 400);
 
   await connectDB();
 
-  const { addressId, address, setDefault } = parsed.data;
+  const { address, setDefault } = parsed.data;
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {
       if (setDefault || address.isDefault) {
-        await User.updateOne({ _id: user._id }, { $set: { "addresses.$[].isDefault": false } }, { session });
-        await User.updateOne({ _id: user._id, "addresses._id": addressId }, { $set: { "addresses.$.isDefault": true } }, { session });
+        await User.updateOne({ _id: userId }, { $set: { "addresses.$[].isDefault": false } }, { session });
+        await User.updateOne({ _id: userId, "addresses._id": addressObjectId }, { $set: { "addresses.$.isDefault": true } }, { session });
       }
 
       const sets: Record<string, unknown> = {};
@@ -136,29 +147,31 @@ export async function PATCH(req: Request) {
         sets[`addresses.$.${k}`] = v;
       }
       if (Object.keys(sets).length) {
-        await User.updateOne({ _id: user._id, "addresses._id": addressId }, { $set: sets }, { session });
+        await User.updateOne({ _id: userId, "addresses._id": addressObjectId }, { $set: sets }, { session });
       }
     });
   } finally {
     session.endSession();
   }
 
-  const updated = await User.findById(user._id).select("addresses").lean();
+  const updated = await User.findById(userId).select("addresses").lean();
   return json({ ok: true, addresses: toClientAddresses(updated?.addresses) });
 }
 
 export async function DELETE(req: Request) {
   const { user } = await requireUser();
-  if (!user?._id) return error("Unauthorized", 401);
+  const userId = toObjectId(user?._id);
+  if (!userId) return error("Unauthorized", 401);
 
   const body = await req.json().catch(() => null);
   const parsed = RemoveSchema.safeParse(body);
   if (!parsed.success) return error("Invalid payload", 400, parsed.error.flatten());
-  if (!mongoose.isValidObjectId(parsed.data.addressId)) return error("Invalid addressId", 400);
+  const addressObjectId = toObjectId(parsed.data.addressId);
+  if (!addressObjectId) return error("Invalid addressId", 400);
 
   await connectDB();
-  await User.updateOne({ _id: user._id }, { $pull: { addresses: { _id: parsed.data.addressId } } });
+  await User.updateOne({ _id: userId }, { $pull: { addresses: { _id: addressObjectId } } });
 
-  const updated = await User.findById(user._id).select("addresses").lean();
+  const updated = await User.findById(userId).select("addresses").lean();
   return json({ ok: true, addresses: toClientAddresses(updated?.addresses) });
 }
