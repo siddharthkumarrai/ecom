@@ -1,5 +1,6 @@
+import type { FilterQuery } from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
-import { Order } from "@/lib/db/models/Order.model";
+import { Order, type OrderDoc } from "@/lib/db/models/Order.model";
 import { Product } from "@/lib/db/models/Product.model";
 import { User } from "@/lib/db/models/User.model";
 import { error, json } from "@/lib/api/response";
@@ -9,7 +10,7 @@ type OrderStatusCount = { _id: string; count: number };
 type PaymentMethodCount = { _id: string; count: number; revenue: number };
 type RevenuePoint = { _id: { year: number; month: number; day: number }; revenue: number; orders: number };
 type TopProduct = { _id: string; quantity: number; revenue: number; name: string };
-const purchasedMatch = () => ({ $or: [{ paymentStatus: "paid" }, { paymentMethod: "cod" }] });
+const purchasedMatch = (): Pick<FilterQuery<OrderDoc>, "$or"> => ({ $or: [{ paymentStatus: "paid" }, { paymentMethod: "cod" }] });
 
 export async function GET(req: Request) {
   const admin = await requireAdmin();
