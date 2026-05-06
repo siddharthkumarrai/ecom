@@ -1,6 +1,5 @@
-import type { FilterQuery } from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
-import { Order, type OrderDoc } from "@/lib/db/models/Order.model";
+import { Order } from "@/lib/db/models/Order.model";
 import { Product } from "@/lib/db/models/Product.model";
 import { User } from "@/lib/db/models/User.model";
 import { error, json } from "@/lib/api/response";
@@ -10,7 +9,7 @@ type OrderStatusCount = { _id: string; count: number };
 type PaymentMethodCount = { _id: string; count: number; revenue: number };
 type RevenuePoint = { _id: { year: number; month: number; day: number }; revenue: number; orders: number };
 type TopProduct = { _id: string; quantity: number; revenue: number; name: string };
-const purchasedMatch = (): Pick<FilterQuery<OrderDoc>, "$or"> => ({ $or: [{ paymentStatus: "paid" }, { paymentMethod: "cod" }] });
+const purchasedMatch = () => ({ $or: [{ paymentStatus: "paid" as const }, { paymentMethod: "cod" as const }] });
 
 export async function GET(req: Request) {
   const admin = await requireAdmin();
@@ -91,7 +90,10 @@ export async function GET(req: Request) {
     Order.countDocuments({ deliveryStatus: { $in: ["pending", "confirmed", "processing"] } }),
   ]);
 
-  const totalOrdersRangePurchased = await Order.countDocuments({ createdAt: { $gte: rangeStart, $lte: rangeEnd }, ...purchasedMatch() });
+  const totalOrdersRangePurchasedAgg = await Order.aggregate<{ count: number }>([
+    { $match: { createdAt: { $gte: rangeStart, $lte: rangeEnd }, ...purchasedMatch() } },
+    { $count: "count" },
+  ]);
   const rangeRevenueAgg = await Order.aggregate<{ total: number }>([
     { $match: { createdAt: { $gte: rangeStart, $lte: rangeEnd }, ...purchasedMatch() } },
     { $group: { _id: null, total: { $sum: "$totalAmount" } } },
@@ -100,8 +102,13 @@ export async function GET(req: Request) {
     { $match: { createdAt: { $gte: compareStart, $lte: compareEnd }, ...purchasedMatch() } },
     { $group: { _id: null, total: { $sum: "$totalAmount" } } },
   ]);
-  const compareOrders = await Order.countDocuments({ createdAt: { $gte: compareStart, $lte: compareEnd }, ...purchasedMatch() });
+  const compareOrdersAgg = await Order.aggregate<{ count: number }>([
+    { $match: { createdAt: { $gte: compareStart, $lte: compareEnd }, ...purchasedMatch() } },
+    { $count: "count" },
+  ]);
 
+  const totalOrdersRangePurchased = totalOrdersRangePurchasedAgg[0]?.count ?? 0;
+  const compareOrders = compareOrdersAgg[0]?.count ?? 0;
   const totalRevenueInRange = rangeRevenueAgg[0]?.total ?? 0;
   const avgOrderValue = totalOrdersRangePurchased > 0 ? round2(totalRevenueInRange / totalOrdersRangePurchased) : 0;
   const compareRevenue = compareRevenueAgg[0]?.total ?? 0;
