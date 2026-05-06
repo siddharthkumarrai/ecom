@@ -10,6 +10,13 @@ import mongoose from "mongoose";
 type CartItem = { product: mongoose.Types.ObjectId; quantity: number };
 type CartDocWithItems = mongoose.Document & { items: CartItem[] };
 
+function toObjectId(value: unknown): mongoose.Types.ObjectId | null {
+  if (value instanceof mongoose.Types.ObjectId) return value;
+  const normalized = typeof value === "string" ? value.trim() : String(value ?? "").trim();
+  if (!normalized || !mongoose.isValidObjectId(normalized)) return null;
+  return new mongoose.Types.ObjectId(normalized);
+}
+
 function parseCartErrorMessage(value: unknown) {
   const message = value instanceof Error ? value.message : String(value ?? "");
   switch (message) {
@@ -93,10 +100,11 @@ const RemoveSchema = z.object({
 
 export async function GET(req: Request) {
   const { user } = await requireUser();
-  if (!user) return error("Unauthorized", 401);
+  const userId = toObjectId(user?._id);
+  if (!user || !userId) return error("Unauthorized", 401);
 
   await connectDB();
-  const cart = (await Cart.findOne({ user: user._id })) as unknown as CartDocWithItems | null;
+  const cart = (await Cart.findOne({ user: userId })) as unknown as CartDocWithItems | null;
   const currentItems = cart?.items ?? [];
   const normalizedItems = await normalizeCartItems(currentItems);
   if (cart && !areCartItemsEqual(currentItems, normalizedItems)) {
@@ -107,7 +115,7 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const couponCode = url.searchParams.get("couponCode") ?? undefined;
-    const totals = await computeCartTotals(normalizedItems, couponCode, user._id);
+    const totals = await computeCartTotals(normalizedItems, couponCode, userId);
     return json({ cart: { items: normalizedItems }, totals });
   } catch (e) {
     return error(parseCartErrorMessage(e), 400, String(e));
@@ -116,7 +124,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const { user } = await requireUser();
-  if (!user) return error("Unauthorized", 401);
+  const userId = toObjectId(user?._id);
+  if (!user || !userId) return error("Unauthorized", 401);
 
   const body = await req.json().catch(() => null);
   const parsed = AddSchema.safeParse(body);
@@ -128,8 +137,8 @@ export async function POST(req: Request) {
   const productObjId = new mongoose.Types.ObjectId(parsed.data.productId);
 
   const cart = (await Cart.findOneAndUpdate(
-    { user: user._id },
-    { $setOnInsert: { user: user._id, items: [] } },
+    { user: userId },
+    { $setOnInsert: { user: userId, items: [] } },
     { upsert: true, returnDocument: "after" }
   )) as unknown as CartDocWithItems;
 
@@ -147,13 +156,14 @@ export async function POST(req: Request) {
   }
   await cart.save();
 
-  const totals = await computeCartTotals(cart.items, parsed.data.couponCode, user._id);
+  const totals = await computeCartTotals(cart.items, parsed.data.couponCode, userId);
   return json({ cart: { items: cart.items }, totals });
 }
 
 export async function PATCH(req: Request) {
   const { user } = await requireUser();
-  if (!user) return error("Unauthorized", 401);
+  const userId = toObjectId(user?._id);
+  if (!user || !userId) return error("Unauthorized", 401);
 
   const body = await req.json().catch(() => null);
   const parsed = UpdateSchema.safeParse(body);
@@ -161,7 +171,7 @@ export async function PATCH(req: Request) {
   if (!mongoose.isValidObjectId(parsed.data.productId)) return error("Invalid productId", 400);
 
   await connectDB();
-  const cart = (await Cart.findOne({ user: user._id })) as unknown as CartDocWithItems | null;
+  const cart = (await Cart.findOne({ user: userId })) as unknown as CartDocWithItems | null;
   if (!cart) return json({ cart: { items: [] }, totals: null });
 
   cart.items = cart.items.filter((i) => String(i.product) !== parsed.data.productId);
@@ -174,25 +184,26 @@ export async function PATCH(req: Request) {
   }
   await cart.save();
 
-  const totals = await computeCartTotals(cart.items, parsed.data.couponCode, user._id);
+  const totals = await computeCartTotals(cart.items, parsed.data.couponCode, userId);
   return json({ cart: { items: cart.items }, totals });
 }
 
 export async function DELETE(req: Request) {
   const { user } = await requireUser();
-  if (!user) return error("Unauthorized", 401);
+  const userId = toObjectId(user?._id);
+  if (!user || !userId) return error("Unauthorized", 401);
 
   const body = await req.json().catch(() => null);
   const parsed = RemoveSchema.safeParse(body);
   if (!parsed.success) return error("Invalid payload", 400, parsed.error.flatten());
 
   await connectDB();
-  const cart = (await Cart.findOne({ user: user._id })) as unknown as CartDocWithItems | null;
+  const cart = (await Cart.findOne({ user: userId })) as unknown as CartDocWithItems | null;
   if (!cart) return json({ ok: true });
 
   cart.items = cart.items.filter((i) => String(i.product) !== parsed.data.productId);
   cart.items = await normalizeCartItems(cart.items);
   await cart.save();
-  const totals = await computeCartTotals(cart.items, parsed.data.couponCode, user._id);
+  const totals = await computeCartTotals(cart.items, parsed.data.couponCode, userId);
   return json({ ok: true, cart: { items: cart.items }, totals });
 }
