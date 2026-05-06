@@ -17,6 +17,34 @@ const TrackSchema = z.object({
   deliveryStatus: z.enum(["pending", "confirmed", "processing", "shipped", "out_for_delivery", "delivered", "cancelled", "returned"]).optional(),
 });
 
+type TrackingEventInput = {
+  status: string;
+  activity: string;
+  location: string;
+  eventTime?: Date;
+};
+
+function normalizeTrackingEvents(value: unknown): TrackingEventInput[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      const event = entry && typeof entry === "object" ? (entry as Record<string, unknown>) : {};
+      const rawEventTime = event.eventTime;
+      const eventTime = rawEventTime instanceof Date
+        ? rawEventTime
+        : typeof rawEventTime === "string" || typeof rawEventTime === "number"
+          ? new Date(rawEventTime)
+          : undefined;
+      return {
+        status: String(event.status ?? ""),
+        activity: String(event.activity ?? ""),
+        location: String(event.location ?? ""),
+        eventTime: eventTime && !Number.isNaN(eventTime.getTime()) ? eventTime : undefined,
+      };
+    })
+    .filter((event) => event.status || event.activity || event.location || event.eventTime);
+}
+
 export async function GET() {
   const admin = await requireAdmin();
   if (!admin.ok) return error(admin.reason === "unauthorized" ? "Unauthorized" : "Not found", admin.reason === "unauthorized" ? 401 : 404);
@@ -80,16 +108,14 @@ export async function POST(req: Request) {
   const nextTrackingUrl = shipment.awbCode && !isMockAWB(shipment.awbCode) ? order.trackingUrl || `https://shiprocket.co/tracking/${encodeURIComponent(shipment.awbCode)}` : "";
   const nextCourierName = shipment.courier || order.courierName || (shipment.awbCode ? "Shiprocket" : "");
   const nextDeliveryStatus: string = shipment.awbCode ? "shipped" : "confirmed";
-  let nextTrackingEvents = Array.isArray(order.trackingEvents) ? order.trackingEvents : [];
-
-  nextTrackingEvents = [
+  const nextTrackingEvents: TrackingEventInput[] = [
     {
       status: "Shipment Created",
       activity: "Shipment created by admin",
       location: "Warehouse",
       eventTime: new Date(),
     },
-    ...nextTrackingEvents,
+    ...normalizeTrackingEvents(order.trackingEvents),
   ].slice(0, 30);
 
   const updated = await Order.findOneAndUpdate(
@@ -142,7 +168,7 @@ export async function PATCH(req: Request) {
           location: "Admin panel",
           eventTime: new Date(),
         },
-        ...(Array.isArray(order.trackingEvents) ? order.trackingEvents : []),
+        ...normalizeTrackingEvents(order.trackingEvents),
       ].slice(0, 30);
     }
 
@@ -175,7 +201,7 @@ export async function PATCH(req: Request) {
         trackingUrl: isMockAWB(awbCode) ? "" : tracking.trackingUrl || order.trackingUrl || `https://shiprocket.co/tracking/${encodeURIComponent(awbCode)}`,
         courierName: tracking.courierName || order.courierName,
         deliveryStatus: normalizeDeliveryStatus(tracking.currentStatus || tracking.status) ?? order.deliveryStatus,
-        trackingEvents: mappedEvents.length > 0 ? mappedEvents : order.trackingEvents ?? [],
+        trackingEvents: mappedEvents.length > 0 ? mappedEvents : normalizeTrackingEvents(order.trackingEvents),
         lastTrackingSyncAt: new Date(),
       },
     },
