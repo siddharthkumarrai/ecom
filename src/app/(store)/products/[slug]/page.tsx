@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { CSSProperties } from "react";
+import type { Metadata } from "next";
 import { getProductBySlugOrMock } from "@/lib/store/data";
 import { RatingStars } from "@/components/store/product/RatingStars";
 import { ProductDetailClient } from "@/components/store/product/ProductDetailClient";
@@ -13,14 +14,75 @@ import { WishlistHeartButton } from "@/components/store/wishlist/WishlistHeartBu
 import { ProductImageGallery } from "@/components/store/product/ProductImageGallery";
 import { StoreBottomSections } from "@/components/store/layout/StoreBottomSections";
 import { CompareToggleButton } from "@/components/store/compare/CompareToggleButton";
+import { buildCanonical, buildOgImage, getSiteSeoSettings } from "@/lib/seo";
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
+function summarizeDescription(value: string): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  if (normalized.length <= 160) return normalized;
+  return `${normalized.slice(0, 157)}...`;
+}
+
+function getProductDescription(product: {
+  description: string;
+  name: string;
+  specifications: Array<{ key: string; value: string }>;
+}): string {
+  const direct = summarizeDescription(product.description);
+  if (direct) return direct;
+  const specs = product.specifications
+    .slice(0, 4)
+    .map((spec) => `${spec.key}: ${spec.value}`.trim())
+    .filter((entry) => entry && entry !== ":")
+    .join(", ");
+  return summarizeDescription(specs || `${product.name} electronic component`);
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const [{ product }, seo] = await Promise.all([getProductBySlugOrMock(slug), getSiteSeoSettings()]);
+
+  if (!product) {
+    return {
+      title: "Product not found",
+      description: seo.defaultDescription,
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const title = `${product.name} | Buy Online | ${seo.siteName}`;
+  const description = getProductDescription(product) || seo.defaultDescription;
+  const canonical = buildCanonical(`/products/${product.slug}`);
+  const socialImage = buildOgImage(product.images?.[0] || product.image || seo.logoUrl || seo.ogImage || seo.defaultOgImage);
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    robots: { index: true, follow: true },
+    openGraph: {
+      type: "website",
+      url: canonical,
+      title,
+      description,
+      images: [{ url: socialImage, alt: product.name }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [socialImage],
+    },
+  };
+}
+
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
-  const [{ product }, { config }] = await Promise.all([getProductBySlugOrMock(slug), getSiteConfigOrMock()]);
+  const [{ product }, { config }, seo] = await Promise.all([getProductBySlugOrMock(slug), getSiteConfigOrMock(), getSiteSeoSettings()]);
   if (!product) return notFound();
   const { products: relatedProducts } = product.categorySlug
     ? await getProductsByCategorySlugOrMock(product.categorySlug, 10)
@@ -34,9 +96,43 @@ export default async function ProductPage({ params }: Props) {
     backgroundColor: config.appearance.productActionButtonBg,
     color: "#18181b",
   } as CSSProperties;
+  const specSummary = product.specifications
+    .slice(0, 2)
+    .map((spec) => spec.value?.trim())
+    .filter(Boolean)
+    .join(" ");
+  const productImageAlt = `${product.name} — ${product.brandName || "YaduInfotech"} ${specSummary || product.partNumber}`.trim();
+  const schemaImages = (product.images?.length ? product.images : product.image ? [product.image] : []).map((img) => buildOgImage(img));
+  const productSchema: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: getProductDescription(product),
+    image: schemaImages.length ? schemaImages : [buildOgImage(seo.logoUrl || seo.ogImage || seo.defaultOgImage)],
+    sku: product.partNumber,
+    brand: {
+      "@type": "Brand",
+      name: product.brandName || "YaduInfotech",
+    },
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "INR",
+      price: String(product.sellingPrice ?? product.price),
+      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      url: buildCanonical(`/products/${product.slug}`),
+    },
+  };
+  if ((product.reviewCount ?? 0) > 0) {
+    productSchema.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: Number((product.rating || 0).toFixed(1)),
+      reviewCount: product.reviewCount ?? 0,
+    };
+  }
 
   return (
     <main className="-mx-[var(--content-px-mobile)] space-y-5 md:-mx-[var(--content-px-desktop)]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
       <nav aria-label="Breadcrumb" className="hidden text-xs text-zinc-500 md:block">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>
@@ -59,7 +155,7 @@ export default async function ProductPage({ params }: Props) {
         </ol>
       </nav>
       <section className="grid gap-4 border-b border-zinc-200 bg-white p-2.5 md:grid-cols-[360px_minmax(0,1fr)] md:gap-7 md:rounded-2xl md:border md:p-6">
-        <ProductImageGallery name={product.name} images={product.images?.length ? product.images : product.image ? [product.image] : []} />
+        <ProductImageGallery name={productImageAlt} images={product.images?.length ? product.images : product.image ? [product.image] : []} />
         <section className="pt-1">
           <h1 className="text-[38px] font-bold leading-[1.08] tracking-tight text-zinc-800 md:text-[34px]">{product.name}</h1>
           <p className="mt-1 text-xs text-zinc-500">({product.reviewCount ?? 0} reviews)</p>

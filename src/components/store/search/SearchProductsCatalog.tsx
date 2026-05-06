@@ -74,10 +74,11 @@ export function SearchProductsCatalog({
                       {product.image ? (
                         <Image
                           src={product.image}
-                          alt={product.name}
+                          alt={`${product.name} — ${product.brandName || "YaduInfotech"} ${product.partNumber}`}
                           fill
                           className="object-contain p-1.5"
                           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                          loading="lazy"
                         />
                       ) : null}
                     </div>

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
-import { connectDB } from "@/lib/db/mongoose";
-import { SiteConfig } from "@/lib/db/models/SiteConfig.model";
+import { buildCanonical, buildOgImage, getMetadataBase, getSiteSeoSettings } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,36 +15,52 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  try {
-    await connectDB();
-    const config = await SiteConfig.findOne({ key: "main" })
-      .select("seo.siteName seo.defaultDescription seo.favicon branding.storeName")
-      .lean<{
-        seo?: { siteName?: string; defaultDescription?: string; favicon?: string };
-        branding?: { storeName?: string };
-      } | null>();
+  const seo = await getSiteSeoSettings();
+  const defaultTitle = seo.defaultTitle || seo.siteName;
+  const favicon = buildCanonical(seo.favicon);
+  const socialImage = buildOgImage(seo.logoUrl || seo.ogImage || seo.defaultOgImage);
 
-    const title =
-      String(config?.seo?.siteName || "").trim() ||
-      String(config?.branding?.storeName || "").trim() ||
-      "Lumenskart";
-    const description =
-      String(config?.seo?.defaultDescription || "").trim() ||
-      "Next-level electronics e-commerce storefront";
-    const favicon = String(config?.seo?.favicon || "").trim() || "/favicon.ico";
-
-    return {
-      title,
-      description,
-      icons: { icon: favicon },
-    };
-  } catch {
-    return {
-      title: "Lumenskart",
-      description: "Next-level electronics e-commerce storefront",
-      icons: { icon: "/favicon.ico" },
-    };
-  }
+  return {
+    metadataBase: getMetadataBase(),
+    title: defaultTitle,
+    description: seo.defaultDescription,
+    alternates: {
+      canonical: buildCanonical("/"),
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+    verification: seo.googleVerification
+      ? {
+          google: seo.googleVerification,
+        }
+      : undefined,
+    icons: {
+      icon: [{ url: favicon }],
+      apple: [{ url: favicon, sizes: "180x180" }],
+    },
+    openGraph: {
+      type: "website",
+      locale: "en_IN",
+      siteName: seo.siteName,
+      url: buildCanonical("/"),
+      title: defaultTitle,
+      description: seo.defaultDescription,
+      images: [
+        {
+          url: socialImage,
+          alt: `${seo.siteName} logo`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: defaultTitle,
+      description: seo.defaultDescription,
+      images: [socialImage],
+    },
+  };
 }
 
 export default function RootLayout({
@@ -59,6 +74,10 @@ export default function RootLayout({
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
+        <head>
+          <link rel="preconnect" href="https://lumenskart.in" crossOrigin="" />
+          <link rel="dns-prefetch" href="https://lumenskart.in" />
+        </head>
         <body className="min-h-full flex flex-col">{children}</body>
       </html>
     </ClerkProvider>

@@ -16,10 +16,11 @@ export function HomeProductTile({ product }: { product: Product }) {
         <div className="relative mt-2 aspect-[1.2/1] w-full">
           <Image
             src={product.image || "/hero-placeholder.svg"}
-            alt={product.name}
+            alt={`${product.name} — ${product.brandName || "YaduInfotech"} ${product.partNumber}`}
             fill
             sizes="180px"
             className="object-contain p-1"
+            loading="lazy"
           />
         </div>
       </Link>

@@ -14,7 +14,14 @@ export function ProductCard({ product }: { product: Product }) {
     <article className="flex items-start gap-3 py-3">
       <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-sm border border-zinc-200 bg-zinc-100">
         {product.image ? (
-          <Image src={product.image} alt={product.name} fill className="object-cover" sizes="48px" />
+          <Image
+            src={product.image}
+            alt={`${product.name} — ${product.brandName || "YaduInfotech"} ${product.partNumber}`}
+            fill
+            className="object-cover"
+            sizes="48px"
+            loading="lazy"
+          />
         ) : null}
       </div>
       <div className="min-w-0 flex-1">
