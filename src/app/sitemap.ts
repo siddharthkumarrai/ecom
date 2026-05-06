@@ -5,8 +5,7 @@ import { Brand } from "@/lib/db/models/Brand.model";
 import { products as mockProducts, brands as mockBrands } from "@/lib/store/mock-data";
 import { buildCanonical } from "@/lib/seo";
 
-const REVALIDATE_SECONDS = Number.parseInt(process.env.REVALIDATE_SITEMAP_SECONDS ?? "3600", 10);
-export const revalidate = Number.isFinite(REVALIDATE_SECONDS) && REVALIDATE_SECONDS > 0 ? REVALIDATE_SECONDS : 3600;
+export const revalidate = 3600;
 
 const STATIC_ROUTES = ["/", "/category/ic", "/category/led", "/category/diode", "/category/mosfet", "/brands", "/about", "/contact"] as const;
 
