@@ -39,6 +39,8 @@ const PutBodySchema = z.object({
 });
 
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const DEFAULT_CART_BUTTON_BG = "#f5c400";
+const DEFAULT_CART_BUTTON_HOVER = "#ffd84d";
 const ANNOUNCEMENT_FONT_WEIGHTS = new Set(["400", "500", "600", "700"]);
 const ANNOUNCEMENT_FONT_STYLES = new Set(["normal", "italic"]);
 const ANNOUNCEMENT_TEXT_TRANSFORMS = new Set(["none", "uppercase", "capitalize"]);
@@ -480,6 +482,13 @@ export async function PUT(req: Request) {
   const themeCartButtonBg = typeof themeCartButtonBgRaw === "string" ? themeCartButtonBgRaw.trim() : "";
   const themeCartButtonHoverBgRaw = firstThemeSection?.config?.cartButtonHoverBg;
   const themeCartButtonHoverBg = typeof themeCartButtonHoverBgRaw === "string" ? themeCartButtonHoverBgRaw.trim() : "";
+  const effectiveThemeCartButtonHoverBg =
+    HEX_COLOR_RE.test(themeCartButtonBg) &&
+    HEX_COLOR_RE.test(themeCartButtonHoverBg) &&
+    themeCartButtonBg.toLowerCase() !== DEFAULT_CART_BUTTON_BG &&
+    themeCartButtonHoverBg.toLowerCase() === DEFAULT_CART_BUTTON_HOVER
+      ? themeCartButtonBg
+      : themeCartButtonHoverBg;
   const themeCartButtonTextRaw = firstThemeSection?.config?.cartButtonText;
   const themeCartButtonText = typeof themeCartButtonTextRaw === "string" ? themeCartButtonTextRaw.trim() : "";
   const themeCartBadgeBgRaw = firstThemeSection?.config?.cartBadgeBg;
@@ -707,7 +716,7 @@ export async function PUT(req: Request) {
       updateColorField("appearance.navbarText", themeNavbarText, String(existingDoc?.appearance?.navbarText ?? "#1f2937"));
       updateColorField("appearance.navbarIconColor", themeNavbarIconColor, String(existingDoc?.appearance?.navbarIconColor ?? "#1f2937"));
       updateColorField("appearance.cartButtonBg", themeCartButtonBg, String(existingDoc?.appearance?.cartButtonBg ?? "#f5c400"));
-      updateColorField("appearance.cartButtonHoverBg", themeCartButtonHoverBg, String(existingDoc?.appearance?.cartButtonHoverBg ?? "#ffd84d"));
+      updateColorField("appearance.cartButtonHoverBg", effectiveThemeCartButtonHoverBg, String(existingDoc?.appearance?.cartButtonHoverBg ?? "#ffd84d"));
       updateColorField("appearance.cartButtonText", themeCartButtonText, String(existingDoc?.appearance?.cartButtonText ?? "#1f2937"));
       updateColorField("appearance.cartBadgeBg", themeCartBadgeBg, String(existingDoc?.appearance?.cartBadgeBg ?? "#2563eb"));
       updateColorField("appearance.footerBg", themeFooterBg, String(existingDoc?.appearance?.footerBg ?? "#f6f6f6"));

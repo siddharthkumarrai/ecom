@@ -46,6 +46,9 @@ function toRgbChannels(hex: string, fallback: string) {
   return fallback;
 }
 
+const DEFAULT_CART_BUTTON_BG = "#f5c400";
+const DEFAULT_CART_BUTTON_HOVER = "#ffd84d";
+
 export default async function StoreLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const isCmsStorePreview = cookieStore.get("cms_store_preview")?.value === "1";
@@ -98,7 +101,15 @@ export default async function StoreLayout({ children }: { children: ReactNode })
   const primaryHex = resolveHexColor(config.appearance.productActionButtonBg, "#f5c400");
   const primaryHoverHex = resolveHexColor(config.appearance.productActionButtonHoverBg, "#ffd84d");
   const cartButtonBgHex = resolveHexColor(themeSectionConfig.cartButtonBg ?? config.appearance.cartButtonBg, "#f5c400");
-  const cartButtonHoverHex = resolveHexColor(themeSectionConfig.cartButtonHoverBg ?? config.appearance.cartButtonHoverBg, "#ffd84d");
+  const rawCartButtonHoverHex = resolveHexColor(
+    themeSectionConfig.cartButtonHoverBg ?? config.appearance.cartButtonHoverBg,
+    DEFAULT_CART_BUTTON_HOVER
+  );
+  const cartButtonHoverHex =
+    cartButtonBgHex.toLowerCase() !== DEFAULT_CART_BUTTON_BG &&
+    rawCartButtonHoverHex.toLowerCase() === DEFAULT_CART_BUTTON_HOVER
+      ? cartButtonBgHex
+      : rawCartButtonHoverHex;
   const cartButtonTextHex = resolveHexColor(themeSectionConfig.cartButtonText ?? config.appearance.cartButtonText, "#1f2937");
   const cartBadgeBgHex = resolveHexColor(themeSectionConfig.cartBadgeBg ?? config.appearance.cartBadgeBg, "#2563eb");
   const resolvedAppearance = {

@@ -47,6 +47,12 @@
     "tailwindcss-animate": "^1.0.7",
     "zod": "^4.3.6"
   },
+  "overrides": {
+    "postcss": "^8.5.10",
+    "next": {
+      "postcss": "^8.5.10"
+    }
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/mongoose": "^5.11.96",
